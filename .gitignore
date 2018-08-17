@@ -1,5 +1,9 @@
 .gradle
 .vscode
 .settings
+.idea
+*.ipr
+*.iws
 out
 classes
+build

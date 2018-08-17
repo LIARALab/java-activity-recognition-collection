@@ -1,0 +1,39 @@
+plugins {
+  // id 'jacoco', wait september or downgrade jdk
+  id 'java-library'
+  id 'groovy'
+  id 'idea'
+  id 'eclipse'
+}
+
+repositories {
+  mavenCentral()
+  jcenter()
+}
+
+defaultTasks 'clean', 'test', 'build'
+
+sourceCompatibility = '1.9'
+targetCompatibility = '1.9'
+
+dependencies {
+  implementation group: 'org.checkerframework', name: 'checker', version: '2.5.4'
+
+  implementation group: 'org.hibernate.javax.persistence', name: 'hibernate-jpa-2.1-api', version: '1.0.2'
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.6'
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.6'
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.9.6'
+  implementation group: 'com.google.guava', name: 'guava', version: '26.0-jre'
+
+  testImplementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.4.15'
+  testImplementation group: 'org.spockframework', name: 'spock-core', version: '1.1-groovy-2.4'
+  testImplementation group: 'org.mockito', name: 'mockito-core', version: '2.21.0'
+}
+
+/*
+jacocoTestReport {
+  reports {
+    html.destination file('${buildDir}/reports/coverage')
+  }
+}
+*/
