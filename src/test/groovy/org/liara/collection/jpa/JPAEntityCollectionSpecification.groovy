@@ -1,8 +1,7 @@
 package org.liara.collection.jpa
 
-import org.checkerframework.checker.nullness.qual.NonNull
 import org.liara.collection.operator.Composition
-import org.liara.collection.operator.aggregating.AggregableCollection
+import org.liara.collection.operator.Operator
 import org.liara.collection.operator.cursoring.Cursor
 import org.liara.collection.operator.filtering.Filter
 import org.liara.collection.operator.grouping.GroupableCollection
@@ -13,6 +12,30 @@ import spock.lang.Specification
 import javax.persistence.EntityManager
 
 class JPAEntityCollectionSpecification extends Specification {
+  def <Entity> Map<Filter, Map<String, String>> getNamespacedParametersOf (
+    final JPAEntityCollection<Entity> collection
+  ) {
+    final Map<Filter, Map<String, String>> result = [:]
+    final Iterator<Filter> collectionFilters = collection.filters().iterator()
+    int index = 0
+
+    while (collectionFilters.hasNext()) {
+      final Filter filter = collectionFilters.next()
+
+      if (filter.parameters.size() != 0) {
+        result[filter] = [:]
+      }
+
+      for (final Map.Entry<String, Object> entry : filter.parameters) {
+        result[filter][entry.key] = "filter${index}_${entry.key}"
+      }
+
+      index += 1
+    }
+
+    return result
+  }
+
   def "it can be instantiated from an entity manager and an entity type" () {
     given: "an entity manager"
       final EntityManager manager = Mockito.mock(EntityManager.class)
@@ -36,7 +59,6 @@ class JPAEntityCollectionSpecification extends Specification {
     new JPAEntityCollection(manager, Object.class).entityName == "object"
     new JPAEntityCollection(manager, Number.class).entityName == "number"
     new JPAEntityCollection(manager, GroupableCollection.class).entityName == "groupableCollection"
-    new JPAEntityCollection(manager, AggregableCollection.class).entityName == "aggregableCollection"
   }
 
   def "it can be ordered" () {
@@ -68,21 +90,21 @@ class JPAEntityCollectionSpecification extends Specification {
       !collection.ordered
   }
 
-  def "it return a null ordering query when the collection is not ordered" () {
+  def "it return an empty ordering clause when the collection is not ordered" () {
     given: "an entity manager"
     final EntityManager manager = Mockito.mock(EntityManager.class)
 
     and: "an unordered collection"
     final JPAEntityCollection<Object> collection = new JPAEntityCollection<>(manager, Object.class)
 
-    when: "we get the ordering query"
-    final String query = collection.orderingQuery
+    when: "we get the ordering clause"
+    final Optional<CharSequence> orderingClause = collection.orderingClause
 
     then: "we expect to get null"
-    query == null
+    !orderingClause.present
   }
 
-  def "it return a valid ordering query when the collection is ordered" () {
+  def "it return a valid ordering clause when the collection is ordered" () {
     given: "an entity manager"
     final EntityManager manager = Mockito.mock(EntityManager.class)
 
@@ -93,11 +115,12 @@ class JPAEntityCollectionSpecification extends Specification {
       Order.field(":this.first").descending()
     ).apply(new JPAEntityCollection<>(manager, Object.class))
 
-    when: "we get the ordering query"
-    final String query = collection.orderingQuery
+    when: "we get the ordering clause"
+    final Optional<CharSequence> orderingClause = collection.orderingClause
 
-    then: "we expect to get a valid ordering query"
-    query == String.join(
+    then: "we expect to get a valid ordering clause"
+    orderingClause.present
+    orderingClause.get().toString() == String.join(
       "",
       "${collection.entityName}.first DESC, ",
       "${collection.entityName}.second ASC, ",
@@ -194,19 +217,205 @@ class JPAEntityCollectionSpecification extends Specification {
     final Map<String, Object> parameters = collection.parameters
 
     then: "we expect that the collection returns a valid parameter map"
-    int index = 0
-    final Iterator<Filter> collectionFilters = collection.filters().iterator()
+    final Map<Filter, Map<String, String>> namespacedParameters = getNamespacedParametersOf(collection)
 
-    while (collectionFilters.hasNext()) {
-      final Filter filter = collectionFilters.next()
-
+    for (final Filter filter : collection.filters()) {
       for (final Map.Entry<String, Object> entry : filter.parameters) {
-        collection.parameters["filter${index}_${entry.key}"] == entry.value
+        parameters[namespacedParameters[filter][entry.key]] == entry.value
       }
-
-      index += 1
     }
 
-    collection.parameters.size() == 2
+    parameters.size() == 2
+  }
+
+  def "it return an empty filtering clause when the collection does not have filters" () {
+    given: "an entity manager"
+    final EntityManager manager = Mockito.mock(EntityManager.class)
+
+    and: "a collection without filters"
+    final JPAEntityCollection<Object> collection = new JPAEntityCollection<>(manager, Object.class)
+
+    when: "we get the filtering clause of the request"
+    final Optional<CharSequence> filteringClause = collection.filteringClause
+
+    then: "we expect that the collection returns an empty filtering clause"
+    !filteringClause.present
+  }
+
+  def "it return a conjunction of its filters as a filtering clause when the collection does have filters" () {
+    given: "an entity manager"
+    final EntityManager manager = Mockito.mock(EntityManager.class)
+
+    and: "some filters with some parameters"
+    final Filter[] filters = [
+      Filter.expression(":this.first = 5"),
+      Filter.expression(":this.second = :name").setParameter("name", "plopl"),
+      Filter.expression(":this.third IN :types").setParameter("types", ["banana", "apple"])
+    ]
+
+    and: "a filtered collection"
+    final JPAEntityCollection<Object> collection = Composition.of(filters).apply(
+      new JPAEntityCollection<>(manager, Object.class)
+    )
+
+    when: "we get the filtering clause of the request"
+    final Optional<CharSequence> filteringClause = collection.filteringClause
+
+    then: "we expect that the collection returns a conjunction of its filters"
+    filteringClause.present
+
+    final Map<Filter, Map<String, String>> namespacedParameters = getNamespacedParametersOf(collection)
+    final Map<Filter, String> resultsByFilters = [
+      (filters[0]): "${collection.entityName}.first = 5",
+      (filters[1]): "${collection.entityName}.second = :${namespacedParameters[filters[1]]["name"]}",
+      (filters[2]): "${collection.entityName}.third IN :${namespacedParameters[filters[2]]["types"]}"
+    ]
+    final List<String> result = []
+
+    for (final Filter filter : collection.filters()) {
+      result.add(resultsByFilters[filter])
+    }
+
+    filteringClause.get().toString() == String.join(" AND ", result)
+  }
+
+  def "it can return a JPQL from clause" () {
+    given: "an entity manager"
+    final EntityManager manager = Mockito.mock(EntityManager.class)
+
+    and: "a collection"
+    final JPAEntityCollection<Object> collection = new JPAEntityCollection<>(manager, Object.class)
+
+    when: "we get the collection from clause"
+    final String from = collection.fromClause
+
+    then: "we expect that the collection return a valid from clause"
+    from == "${collection.entityType.getName()} ${collection.entityName}"
+  }
+
+  def "it can return a complete JPQL query" () {
+    given: "an entity manager"
+    final EntityManager manager = Mockito.mock(EntityManager.class)
+
+    and: "a list of operators"
+    final Operator[] operators = [
+      Filter.expression(":this.first = 5"),
+      Order.field("second").descending(),
+      Order.field("first").ascending(),
+      Filter.expression(":this.last > :value").setParameter("value", 10),
+      Filter.expression(":this.third IN :list").setParameter("list", ["banana", "apple", "pineapple"]),
+      Cursor.DEFAULT
+    ]
+
+    and: "a collection"
+    final JPAEntityCollection<Object> collection = Composition.of(operators).apply(
+      new JPAEntityCollection<>(manager, Object.class)
+    )
+
+    when: "we get the result query"
+    final String query = collection.getQuery("COUNT(:this)")
+
+    then: "we expect to get a valid query"
+    query == String.join(
+      "",
+      "SELECT COUNT(${collection.entityName}) ",
+      "FROM ${collection.fromClause} ",
+      "WHERE ${collection.filteringClause.get()} ",
+      "ORDER BY ${collection.orderingClause.get()}"
+    )
+  }
+
+  def "it can return a partial JPQL query if the collection is not ordered" () {
+    given: "an entity manager"
+    final EntityManager manager = Mockito.mock(EntityManager.class)
+
+    and: "a list of operators"
+    final Operator[] operators = [
+      Filter.expression(":this.first = 5"),
+      Filter.expression(":this.last > :value").setParameter("value", 10),
+      Filter.expression(":this.third IN :list").setParameter("list", ["banana", "apple", "pineapple"]),
+      Cursor.DEFAULT
+    ]
+
+    and: "a collection"
+    final JPAEntityCollection<Object> collection = Composition.of(operators).apply(
+      new JPAEntityCollection<>(manager, Object.class)
+    )
+
+    when: "we get the result query"
+    final String query = collection.getQuery("COUNT(:this)")
+
+    then: "we expect to get a valid query"
+    query == String.join(
+      "",
+      "SELECT COUNT(${collection.entityName}) ",
+      "FROM ${collection.fromClause} ",
+      "WHERE ${collection.filteringClause.get()}"
+    )
+  }
+
+  def "it can return a partial JPQL query if the collection is not filtered" () {
+    given: "an entity manager"
+    final EntityManager manager = Mockito.mock(EntityManager.class)
+
+    and: "a list of operators"
+    final Operator[] operators = [
+      Order.field("second").descending(),
+      Order.field("first").ascending(),
+      Cursor.DEFAULT
+    ]
+
+    and: "a collection"
+    final JPAEntityCollection<Object> collection = Composition.of(operators).apply(
+      new JPAEntityCollection<>(manager, Object.class)
+    )
+
+    when: "we get the result query"
+    final String query = collection.getQuery("COUNT(:this)")
+
+    then: "we expect to get a valid query"
+    query == String.join(
+      "",
+      "SELECT COUNT(${collection.entityName}) ",
+      "FROM ${collection.fromClause} ",
+      "ORDER BY ${collection.orderingClause.get()}"
+    )
+  }
+
+  def "it can return a partial JPQL query if the collection is nor filtered nor ordered" () {
+    given: "an entity manager"
+    final EntityManager manager = Mockito.mock(EntityManager.class)
+
+    and: "a list of operators"
+    final Operator[] operators = [
+      Cursor.DEFAULT
+    ]
+
+    and: "a collection"
+    final JPAEntityCollection<Object> collection = Composition.of(operators).apply(
+      new JPAEntityCollection<>(manager, Object.class)
+    )
+
+    when: "we get the result query"
+    final String query = collection.getQuery("COUNT(:this)")
+
+    then: "we expect to get a valid query"
+    query == String.join(
+      "",
+      "SELECT COUNT(${collection.entityName}) ",
+      "FROM ${collection.fromClause}"
+    )
+  }
+
+  def "it does not have grouped fields by default" () {
+    given: "an entity manager"
+    final EntityManager manager = Mockito.mock(EntityManager.class)
+
+    and: "a collection"
+    final JPAEntityCollection<Object> collection = new JPAEntityCollection<>(manager, Object.class)
+
+    expect: "the collection to not have any grouped field"
+    collection.groupCount == 0
+    collection.groups.empty
   }
 }

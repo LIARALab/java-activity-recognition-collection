@@ -1,5 +1,6 @@
 package org.liara.collection.operator.cursoring
 
+import org.liara.collection.operator.filtering.Filter
 import org.mockito.Mockito
 import org.liara.collection.Collection as LIARACollection
 import spock.lang.Specification
@@ -122,5 +123,23 @@ class CursorSpecification extends Specification
 
     then: "we expect that the operator has updated the cursorable collection"
     result == resultCollection
+  }
+
+  def 'it define a custom equals method' () {
+    expect: 'equal operator to behave accordingly with the standards'
+    Cursor.DEFAULT != null
+    Cursor.DEFAULT == Cursor.DEFAULT
+    Cursor.NONE.setLimit(20).setOffset(10) == Cursor.NONE.setLimit(20).setOffset(10)
+    Cursor.NONE.setLimit(20).setOffset(10) != Cursor.NONE.setLimit(20).setOffset(15)
+    Cursor.NONE.setLimit(20).setOffset(10) != Cursor.NONE.setLimit(15).setOffset(10)
+    Cursor.DEFAULT != new Object()
+  }
+
+  def 'it define a custom hashcode method' () {
+    expect: 'hashcode operator to behave accordingly with the standards'
+    Cursor.DEFAULT.hashCode() == Cursor.DEFAULT.hashCode()
+    Cursor.NONE.setLimit(20).setOffset(10).hashCode() == Cursor.NONE.setLimit(20).setOffset(10).hashCode()
+    Cursor.NONE.setLimit(20).setOffset(10).hashCode() != Cursor.NONE.setLimit(20).setOffset(15).hashCode()
+    Cursor.NONE.setLimit(20).setOffset(10).hashCode() != Cursor.NONE.setLimit(15).setOffset(10).hashCode()
   }
 }

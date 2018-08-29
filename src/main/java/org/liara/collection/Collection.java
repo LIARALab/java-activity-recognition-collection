@@ -3,6 +3,9 @@ package org.liara.collection;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.operator.Operator;
 
+/**
+ * A collection of values.
+ */
 public interface Collection {
   /**
    * Apply an operator on this collection and return the result.

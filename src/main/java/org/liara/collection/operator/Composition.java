@@ -24,6 +24,7 @@ package org.liara.collection.operator;
 import org.checkerframework.checker.index.qual.LTLengthOf;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.com.google.common.collect.Iterators;
 import org.liara.collection.Collection;
 
@@ -194,5 +195,32 @@ public final class Composition implements Operator, Iterable<Operator>
    */
   public @NonNull Iterator<Operator> iterator () {
     return Collections.unmodifiableList(Arrays.asList(_operators)).iterator();
+  }
+
+  @Override
+  public int hashCode () {
+    return Arrays.deepHashCode(_operators);
+  }
+
+  @Override
+  public boolean equals (@Nullable final Object other) {
+    if (other == null) return false;
+    if (other == this) return true;
+
+    if (other instanceof Composition) {
+      @NonNull final Composition otherComposition = (Composition) other;
+
+      if (otherComposition.getSize() != _operators.length) return false;
+
+      for (int index = 0; index < _operators.length; ++index) {
+        if (!Objects.equals(_operators[index], otherComposition.getOperator(index))) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    return false;
   }
 }

@@ -37,9 +37,7 @@ public class ExpressionFilter implements Filter
   }
 
   public @NonNull ExpressionFilter setExpression (@NonNull final String expression) {
-    return new ExpressionFilter(expression,
-                                _parameters
-    );
+    return new ExpressionFilter(expression, _parameters);
   }
 
   @Override
@@ -65,16 +63,14 @@ public class ExpressionFilter implements Filter
   public @NonNull ExpressionFilter removeParameter (
     @NonNull final String name
   ) {
-    final Map<@NonNull String, @NonNull Object> result;
-
     if (_parameters.containsKey(name)) {
+      final Map<@NonNull String, @NonNull Object> result;
       result = new HashMap<>(_parameters);
       result.remove(name);
-    } else {
-      result = Collections.unmodifiableMap(_parameters);
+      return new ExpressionFilter(_expression, result);
     }
 
-    return new ExpressionFilter(_expression, result);
+    return this;
   }
 
   @Override
@@ -87,9 +83,7 @@ public class ExpressionFilter implements Filter
    */
   @Override
   public int hashCode () {
-    return Objects.hash(_expression,
-                        _parameters
-    );
+    return Objects.hash(_expression, _parameters);
   }
 
   /**

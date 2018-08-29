@@ -15,29 +15,24 @@ import org.liara.collection.operator.grouping.GroupableCollection;
 import org.liara.collection.operator.ordering.Order;
 import org.liara.collection.operator.ordering.OrderableCollection;
 
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
+import javax.persistence.Tuple;
+import javax.persistence.TypedQuery;
 import java.util.*;
 
-public class GroupedJPAEntityCollection<Entity>
+public final class GroupedJPAEntityCollection<Entity>
        implements Collection,
-                  FilterableCollection,
+                  CursorableCollection,
                   OrderableCollection,
-                  GroupableCollection,
-                  CursorableCollection
+                  FilterableCollection,
+                  GroupableCollection
 {
   @NonNull
   private final JPAEntityCollection<Entity> _groupedCollection;
 
   @NonNull
   private final List<@NonNull Group> _groups;
-
-  @NonNull
-  private final Set<@NonNull Filter> _filters;
-
-  @NonNull
-  private final List<@NonNull Order> _orderings;
-
-  @NonNull
-  private final Cursor _cursor;
 
   /**
    * Create a new grouped collection from an existing entity collection and a list of groups.
@@ -47,13 +42,13 @@ public class GroupedJPAEntityCollection<Entity>
    */
   public GroupedJPAEntityCollection (
     @NonNull final JPAEntityCollection<Entity> groupedCollection,
-    @NonNull @MinLen(1) final List<@NonNull Group> groups
+    @NonNull @MinLen(1) final Iterable<@NonNull Group> groups
   ) {
     _groupedCollection = groupedCollection;
-    _groups = new ArrayList<>(groups);
-    _filters = new HashSet<>();
-    _orderings = new ArrayList<>();
-    _cursor = Cursor.ALL;
+
+    @NonNull final LinkedList<@NonNull Group> groupList = new LinkedList<>();
+    groups.forEach(groupList::addLast);
+    _groups = new ArrayList<>(groupList);
   }
 
   /**
@@ -66,9 +61,6 @@ public class GroupedJPAEntityCollection<Entity>
   ) {
     _groupedCollection = toCopy.getGroupedCollection();
     _groups = new ArrayList<>(toCopy.getGroups());
-    _filters = new HashSet<>(toCopy.getFilters());
-    _orderings = new ArrayList<>(toCopy.getOrderings());
-    _cursor = toCopy.getCursor();
   }
 
   private GroupedJPAEntityCollection (
@@ -77,45 +69,126 @@ public class GroupedJPAEntityCollection<Entity>
   ) {
     _groupedCollection = groupedCollection;
     _groups = new ArrayList<>(toCopy.getGroups());
-    _filters = new HashSet<>(toCopy.getFilters());
-    _orderings = new ArrayList<>(toCopy.getOrderings());
-    _cursor = toCopy.getCursor();
   }
 
-  private GroupedJPAEntityCollection (
-    @NonNull final GroupedJPAEntityCollection<Entity> toCopy,
-    @NonNull final Cursor cursor
+  /**
+   * Build an aggregation query and return the result.
+   *
+   * @param expression
+   * @return An aggregation query.
+   */
+  public @NonNull Query aggregate (@NonNull final String expression) {
+    @NonNull final Query result = getEntityManager().createQuery(getQuery(expression).toString());
+
+    for (final Map.Entry<String, Object> parameter : getParameters().entrySet()) {
+      result.setParameter(parameter.getKey(), parameter.getValue());
+    }
+
+    return result;
+  }
+
+  /**
+   * Build an aggregation query and return the result.
+   *
+   * @param expression
+   * @param returnType
+   * @param <Result>
+   * @return An aggregation query.
+   */
+  public <Result> @NonNull TypedQuery<Result> aggregate (
+    @NonNull final String expression,
+    @NonNull Class<Result> returnType
   ) {
-    _groupedCollection = toCopy.getGroupedCollection();
-    _groups = new ArrayList<>(toCopy.getGroups());
-    _filters = new HashSet<>(toCopy.getFilters());
-    _orderings = new ArrayList<>(toCopy.getOrderings());
-    _cursor = cursor;
+    @NonNull final TypedQuery<Result> result = getEntityManager().createQuery(
+      getQuery(expression).toString(), returnType
+    );
+
+    for (final Map.Entry<String, Object> parameter : getParameters().entrySet()) {
+      result.setParameter(parameter.getKey(), parameter.getValue());
+    }
+
+    return result;
   }
 
-  private GroupedJPAEntityCollection (
-    @NonNull final GroupedJPAEntityCollection<Entity> toCopy,
-    @NonNull final Iterable<Group> groups,
-    @NonNull final Iterable<Filter> filters,
-    @NonNull final Iterable<Order> orderings
-  ) {
-    _groupedCollection = toCopy.getGroupedCollection();
-    _groups = new ArrayList<>();
-    _filters = new HashSet<>();
-    _orderings = new ArrayList<>();
-    _cursor = toCopy.getCursor();
+  /**
+   * @return The grouping clause of this query if any.
+   */
+  public @NonNull Optional<CharSequence> getGroupingClause () {
+    if (isGrouped()) {
+      @NonNull final StringBuilder query = new StringBuilder();
+      @NonNull final Iterator<@NonNull Group> groups = _groups.iterator();
+      @NonNull final String entityName = getEntityName();
 
-    groups.forEach(_groups::add);
-    filters.forEach(_filters::add);
-    orderings.forEach(_orderings::add);
+      while (groups.hasNext()) {
+        @NonNull final Group group = groups.next();
+
+        query.append(group.getExpression().replaceAll("\\:this", entityName));
+        if (groups.hasNext()) query.append(", ");
+      }
+
+      return Optional.of(query);
+    }
+
+    return Optional.empty();
   }
+
+  /**
+   * @see JPAEntityCollection#getFromClause()
+   */
+  public @NonNull CharSequence getFromClause () { return _groupedCollection.getFromClause(); }
+
+  /**
+   * @see JPAEntityCollection#getQuery(String)
+   */
+  public @NonNull CharSequence getQuery (@NonNull String selection) {
+    @NonNull final Optional<CharSequence> groupingClause = getGroupingClause();
+    @NonNull final CharSequence query = _groupedCollection.getQuery(selection);
+
+    if (groupingClause.isPresent()) {
+      return new StringBuilder().append(query)
+                                .append(" GROUP BY ")
+                                .append(groupingClause.get());
+    }
+
+    return query;
+  }
+
+  /**
+   * @see JPAEntityCollection#getParameters()
+   */
+  public @NonNull Map<@NonNull String, @NonNull Object> getParameters () { return _groupedCollection.getParameters(); }
+
+  /**
+   * @see JPAEntityCollection#getEntityManager()
+   */
+  public @NonNull EntityManager getEntityManager () { return _groupedCollection.getEntityManager(); }
+
+  /**
+   * @see JPAEntityCollection#getEntityName()
+   */
+  public @NonNull String getEntityName () {return _groupedCollection.getEntityName();}
+
+  /**
+   * @see JPAEntityCollection#getEntityType()
+   */
+  public @NonNull Class<Entity> getEntityType () {return _groupedCollection.getEntityType();}
+
+  /**
+   * @see JPAEntityCollection#getOrderingClause()
+   */
+  public @NonNull Optional<CharSequence> getOrderingClause () {return _groupedCollection.getOrderingClause();}
+
+  /**
+   * @see JPAEntityCollection#getFilteringClause()
+   */
+  public @NonNull Optional<CharSequence> getFilteringClause () {return _groupedCollection.getFilteringClause();}
 
   /**
    * Return the underlying grouped collection.
    *
    * @return The underlying grouped collection.
    */
-  public JPAEntityCollection<Entity> getGroupedCollection () {
+  public @NonNull JPAEntityCollection<Entity> getGroupedCollection () {
     return _groupedCollection;
   }
 
@@ -127,10 +200,10 @@ public class GroupedJPAEntityCollection<Entity>
    *
    * @return A grouped collection that group the given collection like this one.
    */
-  public GroupedJPAEntityCollection<Entity> setGroupedCollection (
+  public @NonNull GroupedJPAEntityCollection<Entity> setGroupedCollection (
     @NonNull final JPAEntityCollection<Entity> groupedCollection
   ) {
-    return new GroupedJPAEntityCollection<Entity>(
+    return new GroupedJPAEntityCollection<>(
       this, groupedCollection
     );
   }
@@ -139,16 +212,16 @@ public class GroupedJPAEntityCollection<Entity>
    * @see CursorableCollection#setCursor(Cursor)
    */
   @Override
-  public GroupedJPAEntityCollection<Entity> setCursor (@NonNull final Cursor cursor) {
-    return new GroupedJPAEntityCollection<>(this, cursor);
+  public @NonNull GroupedJPAEntityCollection<Entity> setCursor (@NonNull final Cursor cursor) {
+    return new GroupedJPAEntityCollection<>(this, _groupedCollection.setCursor(cursor));
   }
 
   /**
    * @see CursorableCollection#getCursor()
    */
   @Override
-  public Cursor getCursor () {
-    return _cursor;
+  public @NonNull Cursor getCursor () {
+    return _groupedCollection.getCursor();
   }
 
   /**
@@ -156,12 +229,7 @@ public class GroupedJPAEntityCollection<Entity>
    */
   @Override
   public @NonNull GroupedJPAEntityCollection<Entity> addFilter (@NonNull final Filter filter) {
-    return new GroupedJPAEntityCollection<>(
-      this,
-      _groups,
-      Iterables.concat(_filters, Collections.singleton(filter)),
-      _orderings
-    );
+    return new GroupedJPAEntityCollection<>(this, _groupedCollection.addFilter(filter));
   }
 
   /**
@@ -169,12 +237,7 @@ public class GroupedJPAEntityCollection<Entity>
    */
   @Override
   public @NonNull GroupedJPAEntityCollection<Entity> removeFilter (@NonNull final Filter filter) {
-    return new GroupedJPAEntityCollection<>(
-      this,
-      _groups,
-      Iterables.filter(_filters, x -> !Objects.equals(filter, x)),
-      _orderings
-    );
+    return new GroupedJPAEntityCollection<>(this, _groupedCollection.removeFilter(filter));
   }
 
   /**
@@ -182,7 +245,7 @@ public class GroupedJPAEntityCollection<Entity>
    */
   @Override
   public @NonNegative int getFilterCount () {
-    return _filters.size();
+    return _groupedCollection.getFilterCount();
   }
 
   /**
@@ -190,7 +253,7 @@ public class GroupedJPAEntityCollection<Entity>
    */
   @Override
   public @NonNull Set<@NonNull Filter> getFilters () {
-    return Collections.unmodifiableSet(_filters);
+    return _groupedCollection.getFilters();
   }
 
   /**
@@ -198,7 +261,7 @@ public class GroupedJPAEntityCollection<Entity>
    */
   @Override
   public @NonNull Iterable<@NonNull Filter> filters () {
-    return Collections.unmodifiableSet(_filters);
+    return _groupedCollection.filters();
   }
 
   /**
@@ -207,10 +270,8 @@ public class GroupedJPAEntityCollection<Entity>
   @Override
   public @NonNull GroupedJPAEntityCollection<Entity> groupBy (@NonNull final Group group) {
     return new GroupedJPAEntityCollection<>(
-      this,
-      Iterables.concat(_groups, Collections.singleton(group)),
-      _filters,
-      _orderings
+      _groupedCollection,
+      Iterables.concat(_groups, Collections.singleton(group))
     );
   }
 
@@ -251,12 +312,7 @@ public class GroupedJPAEntityCollection<Entity>
    */
   @Override
   public @NonNull GroupedJPAEntityCollection<Entity> orderBy (@NonNull final Order order) {
-    return new GroupedJPAEntityCollection<>(
-      this,
-      _groups,
-      _filters,
-      Iterables.concat(_orderings, Collections.singleton(order))
-    );
+    return new GroupedJPAEntityCollection<>(this, _groupedCollection.orderBy(order));
   }
 
   /**
@@ -264,7 +320,7 @@ public class GroupedJPAEntityCollection<Entity>
    */
   @Override
   public @NonNull Order getOrdering (@NonNegative @LessThan("this.getOrderingCount()") int index) {
-    return _orderings.get(index);
+    return _groupedCollection.getOrdering(index);
   }
 
   /**
@@ -272,7 +328,7 @@ public class GroupedJPAEntityCollection<Entity>
    */
   @Override
   public @NonNegative int getOrderingCount () {
-    return _orderings.size();
+    return _groupedCollection.getOrderingCount();
   }
 
   /**
@@ -280,7 +336,7 @@ public class GroupedJPAEntityCollection<Entity>
    */
   @Override
   public @NonNull List<@NonNull Order> getOrderings () {
-    return Collections.unmodifiableList(_orderings);
+    return _groupedCollection.getOrderings();
   }
 
   /**
@@ -288,6 +344,6 @@ public class GroupedJPAEntityCollection<Entity>
    */
   @Override
   public @NonNull Iterable<@NonNull Order> orderings () {
-    return Collections.unmodifiableList(_orderings);
+    return _groupedCollection.orderings();
   }
 }

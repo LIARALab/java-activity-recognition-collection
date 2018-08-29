@@ -5,7 +5,7 @@ import org.liara.collection.Collection;
 
 public interface CursorableCollection extends Collection
 {
-  CursorableCollection setCursor (@NonNull final Cursor cursor);
+  @NonNull CursorableCollection setCursor (@NonNull final Cursor cursor);
 
-  Cursor getCursor ();
+  @NonNull Cursor getCursor ();
 }

@@ -67,7 +67,7 @@ public final class Order
   public Order (
     @NonNull final Attribute<?, ?> field
   ) {
-    _field = field.getName();
+    _field = ":this." + field.getName();
     _direction = OrderingDirection.ASCENDING;
   }
 
@@ -208,8 +208,8 @@ public final class Order
     if (other instanceof Order) {
       final Order otherOrder = (Order) other;
       return _field == otherOrder.getField() && _direction == otherOrder.getDirection();
-    } else {
-      return false;
     }
+
+    return false;
   }
 }

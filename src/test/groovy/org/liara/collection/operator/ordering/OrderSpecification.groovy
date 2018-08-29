@@ -16,6 +16,22 @@ class OrderSpecification extends Specification {
       order.field == ":this.field"
   }
 
+  def "it is instantiable from an attribute" () {
+    given: "an attribute"
+    final Attribute<?, ?> attribute = Mockito.mock(Attribute.class)
+    Mockito.when(attribute.getName()).thenReturn('field')
+
+    when: "we create an ordering operator for a given field"
+    final Order order = new Order(attribute)
+    final Order builtOrder = Order.field(attribute)
+
+    then: "we expect to create an ascending operator for the given field"
+    order.direction == OrderingDirection.ASCENDING
+    order.field == ":this.field"
+    builtOrder.direction == OrderingDirection.ASCENDING
+    builtOrder.field == ":this.field"
+  }
+
   def "it allow to instantiate a fully configured ordering operator for a given field" () {
     when: "we create an ordering operator with a given direction for a given field"
       final Order order = new Order(":this.field", OrderingDirection.DESCENDING)
@@ -157,5 +173,24 @@ class OrderSpecification extends Specification {
 
     then: "we expect that the operator has updated the orderable collection"
     result == resultCollection
+  }
+
+  def 'it define a custom equals method' () {
+    expect: 'equal operator to behave accordingly with the standards'
+    Order.field(':this.other') != null
+    final Order instance = Order.field(':this.other')
+    instance == instance
+    Order.field(':this.first') == Order.field(':this.first')
+    Order.field(':this.first') != Order.field(':this.other')
+    Order.field(':this.first').descending() != Order.field(':this.first').ascending()
+    Order.field(':this.first') != new Object()
+  }
+
+  def 'it define a custom hashcode method' () {
+    expect: 'hashcode operator to behave accordingly with the standards'
+    Order.field(':this.other').hashCode() == Order.field(':this.other').hashCode()
+    Order.field(':this.other').hashCode() != Order.field(':this.first').hashCode()
+    Order.field(':this.other').descending().hashCode() == Order.field(':this.other').descending().hashCode()
+    Order.field(':this.other').ascending().hashCode() != Order.field(':this.other').descending().hashCode()
   }
 }

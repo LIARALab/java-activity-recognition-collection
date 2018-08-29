@@ -1,5 +1,5 @@
 plugins {
-  // id 'jacoco', wait september or downgrade jdk
+  id 'jacoco' // wait september or downgrade jdk
   id 'java-library'
   id 'groovy'
   id 'idea'
@@ -30,10 +30,12 @@ dependencies {
   testImplementation group: 'org.mockito', name: 'mockito-core', version: '2.21.0'
 }
 
-/*
+jacoco {
+  toolVersion = "0.8.2"
+}
+
 jacocoTestReport {
   reports {
     html.destination file('${buildDir}/reports/coverage')
   }
 }
-*/

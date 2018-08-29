@@ -1,9 +1,12 @@
 package org.liara.collection.operator
 
+import org.checkerframework.checker.nullness.qual.NonNull
+import org.liara.collection.Collection
 import org.liara.collection.Collection as LIARACollection
+import org.liara.collection.operator.cursoring.Cursor
 import org.mockito.InOrder
 import org.mockito.Mockito
-
+import org.mockito.invocation.InvocationOnMock
 import spock.lang.Specification
 
 class CompositionSpecification extends Specification
@@ -25,6 +28,12 @@ class CompositionSpecification extends Specification
       composition[index] == operators[index]
     }
     composition.operators.is(operators) == false
+  }
+
+  def "it return the empty composition if you trying to compose operators of an empty array" () {
+    expect: "to return the empty composition if we try to compose operators of an empty array"
+    Composition.of() == Composition.EMPTY
+    Composition.of([] as Operator[]) == Composition.EMPTY
   }
 
   def "it can be instantiated from an iterator of operators" () {
@@ -140,5 +149,66 @@ class CompositionSpecification extends Specification
         index == 0 ? inputCollection : collections[operators.length - index]
       )
     }
+  }
+
+  def mockOperatorWithHashAndEquals (final int identifier) {
+    final Operator operator = new Operator() {
+      @Override
+      Collection apply (Collection input) {
+        return input
+      }
+
+      @Override
+      int hashCode () {
+        return identifier
+      }
+
+      @Override
+      boolean equals (Object obj) {
+        return obj != null && obj.hashCode() == identifier
+      }
+    }
+
+    return operator
+  }
+
+  def 'it define a custom equals method' () {
+    given: 'some mocked operators'
+    final Operator[] operators = [
+      mockOperatorWithHashAndEquals(0),
+      mockOperatorWithHashAndEquals(1),
+      mockOperatorWithHashAndEquals(2),
+      mockOperatorWithHashAndEquals(3),
+      mockOperatorWithHashAndEquals(4)
+    ] as Operator[]
+
+    final Operator[] shuffled = Arrays.copyOf(operators, operators.length)
+    Collections.shuffle(Arrays.asList(shuffled), new Random(559))
+
+    expect: 'equal operator to behave accordingly with the standards'
+    Composition.of(operators) != null
+    Composition.of(operators) == Composition.of(operators)
+    Composition.of(operators) != Composition.of(shuffled)
+    Composition.of(Arrays.copyOfRange(operators, 0, 3)) != Composition.of(Arrays.copyOfRange(operators, 2, 3))
+    Composition.of(operators) != new Object()
+  }
+
+  def 'it define a custom hashcode method' () {
+    given: 'some mocked operators'
+    final Operator[] operators = [
+      mockOperatorWithHashAndEquals(0),
+      mockOperatorWithHashAndEquals(1),
+      mockOperatorWithHashAndEquals(2),
+      mockOperatorWithHashAndEquals(3),
+      mockOperatorWithHashAndEquals(4)
+    ] as Operator[]
+
+    final Operator[] shuffled = Arrays.copyOf(operators, operators.length)
+    Collections.shuffle(Arrays.asList(shuffled), new Random(559))
+
+    expect: 'hashcode operator to behave accordingly with the standards'
+    Composition.of(operators).hashCode() == Composition.of(operators).hashCode()
+    Composition.of(operators).hashCode() != Composition.of(shuffled).hashCode()
+    Composition.of(Arrays.copyOfRange(operators, 0, 3)).hashCode() != Composition.of(Arrays.copyOfRange(operators, 2, 3)).hashCode()
   }
 }

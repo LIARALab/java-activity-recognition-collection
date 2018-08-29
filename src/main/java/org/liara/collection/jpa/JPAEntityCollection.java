@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.checkerframework.checker.index.qual.LessThan;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.com.google.common.collect.Iterables;
 import org.liara.collection.Collection;
 import org.liara.collection.operator.cursoring.Cursor;
@@ -157,16 +156,14 @@ public final class JPAEntityCollection<Entity>
   }
 
   /**
-   * Compile and return this collection ordering query.
+   * Compile and return this collection ordering clause.
    *
-   * If this collection is not ordered, this method will return null.
+   * If this collection is not ordered, this method will return an empty optional.
    *
-   * @return This collection ordering query.
+   * @return This collection ordering clause.
    */
-  public @Nullable CharSequence getOrderingQuery () {
-    if (_orderings.size() <= 0) {
-      return null;
-    } else {
+  public @NonNull Optional<CharSequence> getOrderingClause () {
+    if (isOrdered()) {
       @NonNull final String entityName = getEntityName();
       @NonNull final StringBuilder query = new StringBuilder();
 
@@ -183,21 +180,21 @@ public final class JPAEntityCollection<Entity>
         }
       }
 
-      return query;
+      return Optional.of(query);
     }
+
+    return Optional.empty();
   }
 
   /**
-   * Compile and return this collection filtering query.
+   * Compile and return this collection filtering clause.
    *
-   * If this collection is not filtered, this method will return null.
+   * If this collection is not filtered, this method will return an empty optional.
    *
-   * @return This collection filtering query.
+   * @return This collection filtering clause.
    */
-  public @Nullable CharSequence getFilteringQuery () {
-    if (_filters.size() <= 0) {
-      return null;
-    } else {
+  public @NonNull Optional<CharSequence> getFilteringClause () {
+    if (isFiltered()) {
       @NonNull final String entityName = getEntityName();
       @NonNull final StringBuilder query = new StringBuilder();
       @NonNull final Iterator<@NonNull Filter> filters = _filters.iterator();
@@ -210,7 +207,7 @@ public final class JPAEntityCollection<Entity>
           filter.getExpression()
                 .replaceAll("\\:this", entityName)
                 .replaceAll(
-                  "\\:((a-zA-Z1-9)+)",
+                  "\\:([a-zA-Z0-9_]+)",
                   String.join("", ":filter", String.valueOf(index), "_$1")
                 )
         );
@@ -222,8 +219,10 @@ public final class JPAEntityCollection<Entity>
         index += 1;
       }
 
-      return query;
+      return Optional.of(query);
     }
+
+    return Optional.empty();
   }
 
   /**
@@ -246,19 +245,21 @@ public final class JPAEntityCollection<Entity>
     @NonNull final String selection
   ) {
     @NonNull final StringBuilder query = new StringBuilder();
+    @NonNull final Optional<CharSequence> filteringClause = getFilteringClause();
+    @NonNull final Optional<CharSequence> orderingClause = getOrderingClause();
     query.append("SELECT ");
     query.append(selection.replaceAll(":this", getEntityName()));
     query.append(" FROM ");
     query.append(getFromClause());
 
-    if (isFiltered() ) {
+    if (filteringClause.isPresent()) {
       query.append(" WHERE ");
-      query.append(getFilteringQuery());
+      query.append(filteringClause.get());
     }
 
-    if (isOrdered()) {
+    if (orderingClause.isPresent()) {
       query.append(" ORDER BY ");
-      query.append(getOrderingQuery());
+      query.append(orderingClause.get());
     }
 
     return query;
@@ -298,7 +299,7 @@ public final class JPAEntityCollection<Entity>
    *
    * @return A typed query from this collection for a given selection.
    */
-  public <Selection> @NonNull TypedQuery<Selection> getTypedQuery (
+  public <Selection> @NonNull TypedQuery<Selection> select (
     @NonNull final String selection,
     @NonNull final Class<Selection> selectionType
   ) {
@@ -326,7 +327,7 @@ public final class JPAEntityCollection<Entity>
    * @return The number of elements selected by this collection.
    */
   public @NonNegative long findSize () {
-    return getTypedQuery("COUNT(:this)", Long.class).getSingleResult().longValue();
+    return select("COUNT(:this)", Long.class).getSingleResult().longValue();
   }
 
   /**
@@ -335,7 +336,7 @@ public final class JPAEntityCollection<Entity>
    * @return All the elements selected by this collection.
    */
   public @NonNull List<@NonNull Entity> find () {
-    return getTypedQuery(":this", _contentType).getResultList();
+    return select(":this", _contentType).getResultList();
   }
 
   /**
@@ -346,7 +347,7 @@ public final class JPAEntityCollection<Entity>
    * @return The element at the given index.
    */
   public @NonNull Optional<Entity> findOne (@NonNegative final int index) {
-    final List<Entity> results = getTypedQuery(
+    final List<Entity> results = select(
       ":this", _contentType
     ).setMaxResults(1)
      .setFirstResult(_cursor.getOffset() + index)
@@ -370,7 +371,7 @@ public final class JPAEntityCollection<Entity>
    *
    * @return The type of entity stored into this collection.
    */
-  public Class<Entity> getEntityType () {
+  public @NonNull Class<Entity> getEntityType () {
     return _contentType;
   }
 
@@ -379,7 +380,7 @@ public final class JPAEntityCollection<Entity>
    *
    * @return The entity manager related to this collection.
    */
-  public EntityManager getEntityManager () { return _entityManager; }
+  public @NonNull EntityManager getEntityManager () { return _entityManager; }
 
 
   /**
@@ -403,7 +404,7 @@ public final class JPAEntityCollection<Entity>
    * @see OrderableCollection#orderBy(Order)
    */
   @Override
-  public @NonNull OrderableCollection orderBy (@NonNull final Order order) {
+  public @NonNull JPAEntityCollection orderBy (@NonNull final Order order) {
     return new JPAEntityCollection<>(
       this,
       Iterables.concat(_orderings, Collections.singleton(order)),
@@ -447,7 +448,7 @@ public final class JPAEntityCollection<Entity>
    * @see FilterableCollection#addFilter(Filter)
    */
   @Override
-  public @NonNull FilterableCollection addFilter (@NonNull final Filter filter) {
+  public @NonNull JPAEntityCollection addFilter (@NonNull final Filter filter) {
     return new JPAEntityCollection<>(
       this,
       _orderings,
@@ -459,7 +460,7 @@ public final class JPAEntityCollection<Entity>
    * @see FilterableCollection#removeFilter(Filter)
    */
   @Override
-  public @NonNull FilterableCollection removeFilter (@NonNull final Filter filter) {
+  public @NonNull JPAEntityCollection removeFilter (@NonNull final Filter filter) {
     return new JPAEntityCollection<>(
       this,
       _orderings,
