@@ -1,25 +1,19 @@
 package org.liara.collection.operator
 
-import org.checkerframework.checker.nullness.qual.NonNull
-import org.liara.collection.Collection
+import org.liara.collection.Specification
 import org.mockito.Mockito
-import spock.lang.Specification
 import org.liara.collection.Collection as LiaraCollection
 
 class OperatorSpecification extends Specification
 {
   def "it can be defined as a lambda" () {
     given: "a lambda operator and a mocked collection"
-      final LiaraCollection baseCollection = Mockito.mock(LiaraCollection.class)
-      final LiaraCollection resultCollection = Mockito.mock(LiaraCollection.class)
-      final Operator operator = { final LiaraCollection collection -> resultCollection }
+      final Operator operator = {
+        final LiaraCollection collection -> Mockito.mock(LiaraCollection.class)
+      }
       
-    when: "we apply the operator to a collection"
-      final LiaraCollection operationResult = operator.apply(baseCollection)
-
-    then: "we expect that the result view was transformed accordingly"
-      operationResult == resultCollection
-      operationResult != baseCollection
+    expect: "to be appliable"
+      operator.apply(Mockito.mock(LiaraCollection.class)) != null
   }
 
   def "it can be composed with other operators" () {

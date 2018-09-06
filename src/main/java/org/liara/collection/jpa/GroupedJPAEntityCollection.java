@@ -1,8 +1,31 @@
+/*
+ * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ *
+ * Permission is hereby granted,  free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction,  including without limitation the rights
+ * to use,  copy, modify, merge,  publish,  distribute, sublicense,  and/or sell
+ * copies  of the  Software, and  to  permit persons  to  whom  the  Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The  above  copyright  notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE  SOFTWARE IS  PROVIDED  "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED,  INCLUDING  BUT  NOT LIMITED  TO THE  WARRANTIES  OF MERCHANTABILITY,
+ * FITNESS  FOR  A PARTICULAR  PURPOSE  AND  NONINFRINGEMENT. IN NO  EVENT SHALL
+ * THE  AUTHORS OR  COPYRIGHT  HOLDERS  BE  LIABLE FOR  ANY  CLAIM,  DAMAGES  OR
+ * OTHER  LIABILITY, WHETHER  IN  AN  ACTION  OF  CONTRACT,  TORT  OR  OTHERWISE,
+ * ARISING  FROM,  OUT  OF OR  IN  CONNECTION  WITH THE  SOFTWARE OR  THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.liara.collection.jpa;
 
 import org.checkerframework.checker.index.qual.LessThan;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.com.google.common.collect.Iterables;
 import org.checkerframework.common.value.qual.MinLen;
 import org.liara.collection.Collection;
@@ -17,11 +40,12 @@ import org.liara.collection.operator.ordering.OrderableCollection;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
-import javax.persistence.Tuple;
 import javax.persistence.TypedQuery;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public final class GroupedJPAEntityCollection<Entity>
+public class      GroupedJPAEntityCollection<Entity>
        implements Collection,
                   CursorableCollection,
                   OrderableCollection,
@@ -74,11 +98,13 @@ public final class GroupedJPAEntityCollection<Entity>
   /**
    * Build an aggregation query and return the result.
    *
-   * @param expression
+   * @param expression An aggregation expression.
    * @return An aggregation query.
    */
   public @NonNull Query aggregate (@NonNull final String expression) {
-    @NonNull final Query result = getEntityManager().createQuery(getQuery(expression).toString());
+    @NonNull final Query result = getEntityManager().createQuery(
+      getQuery(expression).toString()
+    );
 
     for (final Map.Entry<String, Object> parameter : getParameters().entrySet()) {
       result.setParameter(parameter.getKey(), parameter.getValue());
@@ -90,9 +116,9 @@ public final class GroupedJPAEntityCollection<Entity>
   /**
    * Build an aggregation query and return the result.
    *
-   * @param expression
-   * @param returnType
-   * @param <Result>
+   * @param expression An aggregation expression.
+   * @param returnType Return type of the aggregation query.
+   * @param <Result> Return type of the aggregation query.
    * @return An aggregation query.
    */
   public <Result> @NonNull TypedQuery<Result> aggregate (
@@ -122,7 +148,7 @@ public final class GroupedJPAEntityCollection<Entity>
       while (groups.hasNext()) {
         @NonNull final Group group = groups.next();
 
-        query.append(group.getExpression().replaceAll("\\:this", entityName));
+        query.append(group.getExpression().replaceAll(":this", entityName));
         if (groups.hasNext()) query.append(", ");
       }
 
@@ -140,17 +166,34 @@ public final class GroupedJPAEntityCollection<Entity>
   /**
    * @see JPAEntityCollection#getQuery(String)
    */
-  public @NonNull CharSequence getQuery (@NonNull String selection) {
+  public @NonNull CharSequence getQuery (@NonNull final String selection) {
     @NonNull final Optional<CharSequence> groupingClause = getGroupingClause();
-    @NonNull final CharSequence query = _groupedCollection.getQuery(selection);
 
     if (groupingClause.isPresent()) {
-      return new StringBuilder().append(query)
-                                .append(" GROUP BY ")
-                                .append(groupingClause.get());
+      return new StringBuilder().append(
+        _groupedCollection.getQuery(replaceGroupPlaceholders(selection))
+      ).append(" GROUP BY ").append(groupingClause.get());
     }
 
-    return query;
+    return _groupedCollection.getQuery(selection);
+  }
+
+  private @NonNull String replaceGroupPlaceholders (@NonNull final String selection) {
+    @NonNull final Pattern       pattern = Pattern.compile(":groups(\\[(\\d+)])?");
+    @NonNull final Matcher       matcher = pattern.matcher(selection);
+    @NonNull final StringBuilder groups = new StringBuilder();
+
+    for (int index = 0; index < getGroupCount(); ++index) {
+      if (index > 0) {
+        groups.append(", ");
+      }
+      groups.append(getGroup(index).getExpression());
+    }
+
+    return matcher.replaceAll(
+      match -> (match.group(2) == null) ? groups.toString()
+                                        : getGroup(Integer.parseInt(match.group(2))).getExpression()
+    );
   }
 
   /**
@@ -345,5 +388,25 @@ public final class GroupedJPAEntityCollection<Entity>
   @Override
   public @NonNull Iterable<@NonNull Order> orderings () {
     return _groupedCollection.orderings();
+  }
+
+  @Override
+  public int hashCode () {
+    return Objects.hash(_groupedCollection, _groups);
+  }
+
+  @Override
+  public boolean equals (@Nullable final Object other) {
+    if (other == null) return false;
+    if (other == this) return true;
+
+    if (other instanceof GroupedJPAEntityCollection) {
+      @NonNull final GroupedJPAEntityCollection<?> otherCollection = (GroupedJPAEntityCollection<?>) other;
+
+      return Objects.equals(otherCollection.getGroupedCollection(), _groupedCollection) &&
+             Objects.equals(otherCollection.getGroups(), _groups);
+    }
+
+    return false;
   }
 }

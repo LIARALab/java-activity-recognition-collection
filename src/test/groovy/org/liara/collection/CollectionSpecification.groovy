@@ -19,9 +19,25 @@
  * ARISING  FROM,  OUT  OF OR  IN  CONNECTION  WITH THE  SOFTWARE OR  THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.liara.collection;
 
-public final class Operators
-{
+package org.liara.collection
 
+import org.liara.collection.operator.Operator
+import org.mockito.Mockito
+
+class CollectionSpecification extends Specification {
+  def "it allows to apply an operator on itself" () {
+    given: "an operator"
+    final Operator op = Mockito.mock(Operator.class)
+
+    and: "a collection"
+    final Collection collection = Mockito.mock(Collection.class)
+    Mockito.when(collection.apply(Mockito.any(Operator.class))).thenCallRealMethod()
+
+    when: "we call apply with the operator"
+    collection.apply(op)
+
+    then: "we expect the collection to apply the operator to itself"
+    isTrue Mockito.verify(op).apply(collection)
+  }
 }

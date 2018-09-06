@@ -1,16 +1,18 @@
 package org.liara.collection.operator
 
-import org.checkerframework.checker.nullness.qual.NonNull
 import org.liara.collection.Collection
 import org.liara.collection.Collection as LIARACollection
-import org.liara.collection.operator.cursoring.Cursor
 import org.mockito.InOrder
 import org.mockito.Mockito
-import org.mockito.invocation.InvocationOnMock
 import spock.lang.Specification
 
 class CompositionSpecification extends Specification
 {
+  def "it can be instantiated as an empty composition" () {
+    expect: "to be instantiable as an empty composition"
+    new Composition().operators == new Operator[0]
+  }
+
   def "it can be instantiated from an iterable of operators" () {
     given: "a list of operators"
     final List<Operator> operators = [
@@ -27,7 +29,7 @@ class CompositionSpecification extends Specification
     for (int index = 0; index < operators.size(); ++index) {
       composition[index] == operators[index]
     }
-    composition.operators.is(operators) == false
+    !composition.operators.is(operators)
   }
 
   def "it return the empty composition if you trying to compose operators of an empty array" () {
@@ -52,7 +54,7 @@ class CompositionSpecification extends Specification
     for (int index = 0; index < operators.size(); ++index) {
       composition[index] == operators[index]
     }
-    composition.operators.is(operators) == false
+    !composition.operators.is(operators)
   }
 
   def "it can be instantiated from an array of operators" () {
@@ -71,7 +73,7 @@ class CompositionSpecification extends Specification
     for (int index = 0; index < operators.length; ++index) {
       composition[index] == operators[index]
     }
-    composition.operators.is(operators) == false
+    !composition.operators.is(operators)
   }
 
   def "it can be instantiated from another composition" () {
@@ -90,7 +92,7 @@ class CompositionSpecification extends Specification
     for (int index = 0; index < operators.length; ++index) {
       composition[index] == operators[index]
     }
-    composition.operators.is(operators) == false
+    !composition.operators.is(operators)
   }
 
   def "it flatten composition of compositions" () {
@@ -118,7 +120,7 @@ class CompositionSpecification extends Specification
     for (int index = 0; index < operators.length; ++index) {
       composition[index] == operators[index]
     }
-    composition.operators.is(operators) == false
+    !composition.operators.is(operators)
   }
 
   def "it apply each of its child operators sequentially when it is applied to a collection" () {
@@ -148,6 +150,27 @@ class CompositionSpecification extends Specification
       order.verify(operators[operators.length - index - 1]).apply(
         index == 0 ? inputCollection : collections[operators.length - index]
       )
+    }
+  }
+
+  def "it allows you to get its composed operator by their index from the last applied one to the first applied one" () {
+    given: "some operators"
+      final Operator[] operators = [
+        Mockito.mock(Operator.class),
+        Mockito.mock(Operator.class),
+        Mockito.mock(Operator.class),
+        Mockito.mock(Operator.class),
+        Mockito.mock(Operator.class),
+        Mockito.mock(Operator.class)
+      ]
+
+    and: "a composition of operators"
+    final Composition composition = Composition.of(operators) as Composition
+
+    expect: "to be able to access to each composed operator of the composition"
+    for (int index = 0; index < operators.length; ++index) {
+      composition.getOperator(index).is(operators[index])
+      composition[index].is(operators[index])
     }
   }
 

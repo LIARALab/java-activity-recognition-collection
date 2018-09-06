@@ -19,9 +19,9 @@
  * ARISING  FROM,  OUT  OF OR  IN  CONNECTION  WITH THE  SOFTWARE OR  THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.liara.collection;
 
-public final class Operators
-{
+package org.liara.collection
 
+class Specification extends spock.lang.Specification {
+  def isTrue (mockitoAssertion) { return true }
 }

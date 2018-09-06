@@ -1,24 +1,24 @@
-/*******************************************************************************
+/*
  * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
+ * in the Software without restriction,  including without limitation the rights
+ * to use,  copy, modify, merge,  publish,  distribute, sublicense,  and/or sell
+ * copies  of the  Software, and  to  permit persons  to  whom  the  Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in
+ * The  above  copyright  notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- ******************************************************************************/
+ * THE  SOFTWARE IS  PROVIDED  "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED,  INCLUDING  BUT  NOT LIMITED  TO THE  WARRANTIES  OF MERCHANTABILITY,
+ * FITNESS  FOR  A PARTICULAR  PURPOSE  AND  NONINFRINGEMENT. IN NO  EVENT SHALL
+ * THE  AUTHORS OR  COPYRIGHT  HOLDERS  BE  LIABLE FOR  ANY  CLAIM,  DAMAGES  OR
+ * OTHER  LIABILITY, WHETHER  IN  AN  ACTION  OF  CONTRACT,  TORT  OR  OTHERWISE,
+ * ARISING  FROM,  OUT  OF OR  IN  CONNECTION  WITH THE  SOFTWARE OR  THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
 package org.liara.collection.jpa;
 
 import java.util.*;
@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.checkerframework.checker.index.qual.LessThan;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.com.google.common.collect.Iterables;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
 import org.liara.collection.operator.cursoring.Cursor;
 import org.liara.collection.operator.cursoring.CursorableCollection;
@@ -49,12 +49,12 @@ import javax.persistence.TypedQuery;
  * @author C&eacute;dric DEMONGIVERT [cedric.demongivert@gmail.com](mailto:cedric.demongivert@gmail.com)
  */
 @JsonSerialize(using = JPAEntityCollectionSerializer.class)
-public final class JPAEntityCollection<Entity>
-             implements Collection,
-                        CursorableCollection,
-                        OrderableCollection,
-                        FilterableCollection,
-                        GroupableCollection
+public class JPAEntityCollection<Entity>
+       implements Collection,
+                  CursorableCollection,
+                  OrderableCollection,
+                  FilterableCollection,
+                  GroupableCollection
 {
   @NonNull
   private final EntityManager _entityManager;
@@ -63,13 +63,7 @@ public final class JPAEntityCollection<Entity>
   private final Class<Entity> _contentType;
 
   @NonNull
-  private final List<@NonNull Order> _orderings;
-
-  @NonNull
-  private final Set<@NonNull Filter> _filters;
-
-  @NonNull
-  private final Cursor _cursor;
+  private final JPAEntityCollectionConfiguration _configuration;
 
   /**
    * Create a collection of a given entity and managed by a given manager instance.
@@ -84,9 +78,7 @@ public final class JPAEntityCollection<Entity>
   {
     _entityManager = entityManager;
     _contentType = entity;
-    _orderings = new ArrayList<>();
-    _filters = new HashSet<>();
-    _cursor = Cursor.ALL;
+    _configuration = new JPAEntityCollectionConfiguration();
   }
 
   /**
@@ -100,49 +92,23 @@ public final class JPAEntityCollection<Entity>
   {
     _entityManager = collection.getEntityManager();
     _contentType = collection.getEntityType();
-    _orderings = new ArrayList<>(collection.getOrderings());
-    _filters = new HashSet<>(collection.getFilters());
-    _cursor = collection.getCursor();
+    _configuration = collection.getConfiguration();
   }
 
   /**
-   * Create a copy of another collection and change the collection cursor.
+   * Create a collection of the same type of the given one with a different configuration.
    *
    * @param collection Collection to copy.
-   * @param cursor     New cursor to apply.
+   * @param configuration New Configuration to apply.
    */
   private JPAEntityCollection (
     @NonNull final JPAEntityCollection<Entity> collection,
-    @NonNull final Cursor cursor
+    @NonNull final JPAEntityCollectionConfiguration configuration
   )
   {
     _entityManager = collection.getEntityManager();
     _contentType = collection.getEntityType();
-    _orderings = new ArrayList<>(collection.getOrderings());
-    _filters = new HashSet<>(collection.getFilters());
-    _cursor = cursor;
-  }
-
-  /**
-   * Create a copy of another collection and change it's ordering.
-   *
-   * @param collection Collection to copy.
-   * @param orderings  New ordering of the collection.
-   */
-  private JPAEntityCollection (
-    @NonNull final JPAEntityCollection<Entity> collection,
-    @NonNull final Iterable<Order> orderings,
-    @NonNull final Iterable<Filter> filters
-  )
-  {
-    _entityManager = collection.getEntityManager();
-    _contentType = collection.getEntityType();
-    _orderings = new ArrayList<>();
-    _filters = new HashSet<>();
-    _cursor = collection.getCursor();
-
-    filters.forEach(_filters::add);
-    orderings.forEach(_orderings::add);
+    _configuration = configuration;
   }
 
   /**
@@ -166,16 +132,18 @@ public final class JPAEntityCollection<Entity>
     if (isOrdered()) {
       @NonNull final String entityName = getEntityName();
       @NonNull final StringBuilder query = new StringBuilder();
+      @NonNegative final int orderingCount = _configuration.getOrderingCount();
 
-      for (int index = 0; index < _orderings.size(); ++index) {
-        query.append(_orderings.get(index).getField().replaceAll("\\:this", entityName));
+      for (int index = 0; index < orderingCount; ++index) {
+        @NonNull final Order order = _configuration.getOrdering(index);
+        query.append(order.getField().replaceAll(":this", entityName));
         query.append(" ");
-        switch (_orderings.get(index).getDirection()) {
+        switch (order.getDirection()) {
           case ASCENDING: query.append("ASC"); break;
           case DESCENDING: query.append("DESC"); break;
         }
 
-        if (index < _orderings.size() - 1) {
+        if (index < orderingCount - 1) {
           query.append(", ");
         }
       }
@@ -197,7 +165,7 @@ public final class JPAEntityCollection<Entity>
     if (isFiltered()) {
       @NonNull final String entityName = getEntityName();
       @NonNull final StringBuilder query = new StringBuilder();
-      @NonNull final Iterator<@NonNull Filter> filters = _filters.iterator();
+      @NonNull final Iterator<@NonNull Filter> filters = _configuration.getFilters().iterator();
       @NonNegative int index = 0;
 
       while (filters.hasNext()) {
@@ -205,9 +173,9 @@ public final class JPAEntityCollection<Entity>
 
         query.append(
           filter.getExpression()
-                .replaceAll("\\:this", entityName)
+                .replaceAll(":this", entityName)
                 .replaceAll(
-                  "\\:([a-zA-Z0-9_]+)",
+                  ":([a-zA-Z0-9_]+)",
                   String.join("", ":filter", String.valueOf(index), "_$1")
                 )
         );
@@ -273,7 +241,7 @@ public final class JPAEntityCollection<Entity>
   public @NonNull Map<@NonNull String, @NonNull Object> getParameters () {
     @NonNull final Map<@NonNull String, @NonNull Object> parameters = new HashMap<>();
 
-    @NonNull final Iterator<@NonNull Filter> filters = _filters.iterator();
+    @NonNull final Iterator<@NonNull Filter> filters = _configuration.getFilters().iterator();
     int index = 0;
 
     while (filters.hasNext()) {
@@ -307,15 +275,16 @@ public final class JPAEntityCollection<Entity>
       getQuery(selection).toString(),
       selectionType
     );
+    @NonNull final Cursor cursor = _configuration.getCursor();
 
     for (final Map.Entry<@NonNull String, @NonNull Object> parameter : getParameters().entrySet()) {
       result.setParameter(parameter.getKey(), parameter.getValue());
     }
 
-    result.setFirstResult(_cursor.getOffset());
+    result.setFirstResult(cursor.getOffset());
 
-    if (_cursor.hasLimit()) {
-      result.setFirstResult(_cursor.getLimit());
+    if (cursor.hasLimit()) {
+      result.setMaxResults(cursor.getLimit());
     }
 
     return result;
@@ -327,7 +296,7 @@ public final class JPAEntityCollection<Entity>
    * @return The number of elements selected by this collection.
    */
   public @NonNegative long findSize () {
-    return select("COUNT(:this)", Long.class).getSingleResult().longValue();
+    return select("COUNT(:this)", Long.class).getSingleResult();
   }
 
   /**
@@ -337,33 +306,6 @@ public final class JPAEntityCollection<Entity>
    */
   public @NonNull List<@NonNull Entity> find () {
     return select(":this", _contentType).getResultList();
-  }
-
-  /**
-   * Return an element of this collection.
-   *
-   * @param index Index of the element to retrieve.
-   *
-   * @return The element at the given index.
-   */
-  public @NonNull Optional<Entity> findOne (@NonNegative final int index) {
-    final List<Entity> results = select(
-      ":this", _contentType
-    ).setMaxResults(1)
-     .setFirstResult(_cursor.getOffset() + index)
-     .getResultList();
-
-    if (results.size() <= 0) return Optional.empty();
-    else return Optional.ofNullable(results.get(0));
-  }
-
-  /**
-   * Return the first entity of this collection.
-   *
-   * @return The first entity of this collection.
-   */
-  public @NonNull Optional<Entity> findFirst () {
-    return findOne(0);
   }
 
   /**
@@ -387,29 +329,22 @@ public final class JPAEntityCollection<Entity>
    * @see CursorableCollection#getCursor()
    */
   public @NonNull Cursor getCursor () {
-    return _cursor;
+    return _configuration.getCursor();
   }
 
   /**
    * @see CursorableCollection#setCursor(Cursor)
    */
-  public @NonNull JPAEntityCollection setCursor (@NonNull final Cursor cursor) {
-    return new JPAEntityCollection(
-      this,
-      cursor
-    );
+  public @NonNull JPAEntityCollection<Entity> setCursor (@NonNull final Cursor cursor) {
+    return new JPAEntityCollection<>(this, _configuration.setCursor(cursor));
   }
 
   /**
    * @see OrderableCollection#orderBy(Order)
    */
   @Override
-  public @NonNull JPAEntityCollection orderBy (@NonNull final Order order) {
-    return new JPAEntityCollection<>(
-      this,
-      Iterables.concat(_orderings, Collections.singleton(order)),
-      _filters
-    );
+  public @NonNull JPAEntityCollection<Entity> orderBy (@NonNull final Order order) {
+    return new JPAEntityCollection<>(this, _configuration.orderBy(order));
   }
 
   /**
@@ -417,7 +352,7 @@ public final class JPAEntityCollection<Entity>
    */
   @Override
   public @NonNull Order getOrdering (@NonNegative @LessThan("this.getOrderingCount()") int index) {
-    return _orderings.get(index);
+    return _configuration.getOrdering(index);
   }
 
   /**
@@ -425,7 +360,7 @@ public final class JPAEntityCollection<Entity>
    */
   @Override
   public @NonNegative int getOrderingCount () {
-    return _orderings.size();
+    return _configuration.getOrderingCount();
   }
 
   /**
@@ -433,7 +368,7 @@ public final class JPAEntityCollection<Entity>
    */
   @Override
   public @NonNull List<@NonNull Order> getOrderings () {
-    return Collections.unmodifiableList(_orderings);
+    return _configuration.getOrderings();
   }
 
   /**
@@ -441,31 +376,23 @@ public final class JPAEntityCollection<Entity>
    */
   @Override
   public @NonNull Iterable<@NonNull Order> orderings () {
-    return Collections.unmodifiableList(_orderings);
+    return _configuration.orderings();
   }
 
   /**
    * @see FilterableCollection#addFilter(Filter)
    */
   @Override
-  public @NonNull JPAEntityCollection addFilter (@NonNull final Filter filter) {
-    return new JPAEntityCollection<>(
-      this,
-      _orderings,
-      Iterables.concat(_filters, Collections.singleton(filter))
-    );
+  public @NonNull JPAEntityCollection<Entity> addFilter (@NonNull final Filter filter) {
+    return new JPAEntityCollection<>(this, _configuration.addFilter(filter));
   }
 
   /**
    * @see FilterableCollection#removeFilter(Filter)
    */
   @Override
-  public @NonNull JPAEntityCollection removeFilter (@NonNull final Filter filter) {
-    return new JPAEntityCollection<>(
-      this,
-      _orderings,
-      Iterables.filter(_filters, entry -> !Objects.equals(entry, filter))
-    );
+  public @NonNull JPAEntityCollection<Entity> removeFilter (@NonNull final Filter filter) {
+    return new JPAEntityCollection<>(this, _configuration.removeFilter(filter));
   }
 
   /**
@@ -473,7 +400,7 @@ public final class JPAEntityCollection<Entity>
    */
   @Override
   public @NonNegative int getFilterCount () {
-    return _filters.size();
+    return _configuration.getFilterCount();
   }
 
   /**
@@ -481,7 +408,7 @@ public final class JPAEntityCollection<Entity>
    */
   @Override
   public @NonNull Set<@NonNull Filter> getFilters () {
-    return Collections.unmodifiableSet(_filters);
+    return _configuration.getFilters();
   }
 
   /**
@@ -489,7 +416,7 @@ public final class JPAEntityCollection<Entity>
    */
   @Override
   public @NonNull Iterable<@NonNull Filter> filters () {
-    return Collections.unmodifiableSet(_filters);
+    return _configuration.filters();
   }
 
   /**
@@ -521,5 +448,29 @@ public final class JPAEntityCollection<Entity>
   @Override
   public @NonNull Iterable<@NonNull Group> groups () {
     return Collections.emptyList();
+  }
+
+  private @NonNull JPAEntityCollectionConfiguration getConfiguration () {
+    return _configuration;
+  }
+
+  @Override
+  public int hashCode () {
+    return Objects.hash(_contentType, _configuration);
+  }
+
+  @Override
+  public boolean equals (@Nullable final Object other) {
+    if (other == null) return false;
+    if (other == this) return true;
+
+    if (other instanceof JPAEntityCollection) {
+      @NonNull final JPAEntityCollection otherCollection = (JPAEntityCollection) other;
+
+      return Objects.equals(_contentType, otherCollection.getEntityType()) &&
+             Objects.equals(_configuration, otherCollection.getConfiguration());
+    }
+
+    return false;
   }
 }
