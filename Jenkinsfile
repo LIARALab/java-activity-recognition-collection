@@ -25,13 +25,13 @@ pipeline {
 
   stages {
     stage('test') {
-      steps {
+      steps { script {
         if (isUnix()) {
           sh './gradlew clean test'
         } else {
           bat 'gradlew.bat clean test'
         }
-      }
+      } }
     }
   }
 }
