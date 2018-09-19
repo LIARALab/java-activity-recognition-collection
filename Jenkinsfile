@@ -29,8 +29,13 @@ pipeline {
         jdk "jdk-10.0.2"
       }
 
+      environment {
+        JAVA_HOME = "${tool 'jdk-10.0.2'}"
+      }
+
       steps { script {
         if (isUnix()) {
+          sh 'java --version'
           sh './gradlew clean test'
         } else {
           bat 'gradlew.bat clean test'
