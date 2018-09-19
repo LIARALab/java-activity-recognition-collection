@@ -4,6 +4,8 @@
 .idea
 *.ipr
 *.iws
+*.iml
 out
 classes
 build
+.project
