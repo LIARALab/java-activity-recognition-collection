@@ -24,7 +24,6 @@ pipeline {
   agent {
     dockerfile {
       filename 'build.Dockerfile'
-      label 'java-rest-collection-builder'
     }
   }
 
