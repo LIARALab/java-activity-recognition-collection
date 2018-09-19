@@ -21,6 +21,8 @@
  */
 
 pipeline {
+  agent any
+
   stages {
     stage('test') {
       if (isUnix()) {
