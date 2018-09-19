@@ -21,25 +21,26 @@
  */
 
 pipeline {
-  agent any
+  dockerfile {
+    filename 'build.Dockerfile'
+    label 'java-rest-collection-builder'
+  }
 
   stages {
     stage('test') {
       tools {
-        jdk "jdk-10.0.2"
+        jdk 'jdk-10.0.2'
       }
 
-      environment {
-        JAVA_HOME = "${tool 'jdk-10.0.2'}"
-      }
-
-      steps { script {
-        if (isUnix()) {
-          sh './gradlew clean test'
-        } else {
-          bat 'gradlew.bat clean test'
+      steps {
+        script {
+          if (isUnix()) {
+            sh './gradlew clean test'
+          } else {
+            bat 'gradlew.bat clean test'
+          }
         }
-      } }
+      }
     }
   }
 }
