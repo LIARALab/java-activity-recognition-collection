@@ -18,5 +18,3 @@ RUN addgroup application && \
 	chmod -R u+rx /home/application
 
 USER application
-
-ENTRYPOINT ["bin/bash"]
