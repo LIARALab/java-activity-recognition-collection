@@ -21,9 +21,11 @@
  */
 
 pipeline {
-  dockerfile {
-    filename 'build.Dockerfile'
-    label 'java-rest-collection-builder'
+  agent {
+    dockerfile {
+      filename 'build.Dockerfile'
+      label 'java-rest-collection-builder'
+    }
   }
 
   stages {
