@@ -28,10 +28,6 @@ pipeline {
 
   stages {
     stage('test') {
-      tools {
-        jdk 'jdk-10.0.2'
-      }
-
       steps {
         script {
           if (isUnix()) {
