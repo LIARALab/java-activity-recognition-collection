@@ -35,7 +35,6 @@ pipeline {
 
       steps { script {
         if (isUnix()) {
-          sh 'java --version'
           sh './gradlew clean test'
         } else {
           bat 'gradlew.bat clean test'
