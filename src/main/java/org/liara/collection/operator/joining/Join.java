@@ -20,30 +20,45 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.liara.collection.operator.grouping;
+package org.liara.collection.operator.joining;
 
-import org.checkerframework.checker.index.qual.LessThan;
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.Collection;
+import org.liara.collection.operator.Operator;
 
-import java.util.List;
-
-public interface GroupableCollection extends Collection
+public class Join
+  implements Operator
 {
-  @NonNull GroupableCollection groupBy (@NonNull final Group group);
+  @NonNull
+  private final String _field;
 
-  @NonNull GroupableCollection ungroup (@NonNull final Group group);
+  public Join (@NonNull final String field) {
+    _field = field;
+  }
 
-  @NonNull Group getGroup (@NonNegative @LessThan("this.getGroupCount()") final int index);
+  public Join (@NonNull final Join toCopy) {
+    _field = toCopy.getField();
+  }
 
-  @NonNegative int getGroupCount ();
+  @Override
+  public @NonNull Operator apply (@NonNull final Operator child) {
+    if (child instanceof JoinableOperator) {
+      return ((JoinableOperator) child).join(this);
+    }
 
-  @NonNull List<@NonNull Group> getGroups ();
+    return child;
+  }
 
-  @NonNull Iterable<@NonNull Group> groups ();
+  @Override
+  public @NonNull Collection apply (@NonNull final Collection input) {
+    @NonNull final Operator operator = input.getOperator();
+    @NonNull final Operator joined   = this.apply(operator);
 
-  default boolean isGrouped () {
-    return getGroupCount() > 0;
+    return input.clear().apply(joined);
+  }
+
+
+  public @NonNull String getField () {
+    return _field;
   }
 }

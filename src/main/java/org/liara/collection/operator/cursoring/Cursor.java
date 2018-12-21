@@ -50,6 +50,12 @@ public class Cursor implements Operator
   public static final Cursor DEFAULT = new Cursor(0, 10);
 
   /**
+   * A cursor that select the first element.
+   */
+  @NonNull
+  public static final Cursor FIRST = new Cursor(0, 0);
+
+  /**
    * An empty cursor that does not skip entities and does not display any entities of the given collection.
    */
   @NonNull

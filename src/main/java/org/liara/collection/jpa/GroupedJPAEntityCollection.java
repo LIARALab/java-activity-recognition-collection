@@ -29,6 +29,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.com.google.common.collect.Iterables;
 import org.checkerframework.common.value.qual.MinLen;
 import org.liara.collection.Collection;
+import org.liara.collection.operator.Composition;
+import org.liara.collection.operator.Operator;
 import org.liara.collection.operator.cursoring.Cursor;
 import org.liara.collection.operator.cursoring.CursorableCollection;
 import org.liara.collection.operator.filtering.Filter;
@@ -318,6 +320,14 @@ public class      GroupedJPAEntityCollection<Entity>
     );
   }
 
+  @Override
+  public @NonNull GroupableCollection ungroup (@NonNull final Group group) {
+    @NonNull final List<Group> groups = new ArrayList<>(_groups);
+    groups.remove(group);
+
+    return (groups.size() <= 0) ? getGroupedCollection() : new GroupedJPAEntityCollection<>(_groupedCollection, groups);
+  }
+
   /**
    * @see GroupableCollection#getGroup(int)
    */
@@ -358,6 +368,11 @@ public class      GroupedJPAEntityCollection<Entity>
     return new GroupedJPAEntityCollection<>(this, _groupedCollection.orderBy(order));
   }
 
+  @Override
+  public @NonNull OrderableCollection removeOrder (@NonNull final Order order) {
+    return new GroupedJPAEntityCollection<>(this, _groupedCollection.removeOrder(order));
+  }
+
   /**
    * @see OrderableCollection#getOrdering(int)
    */
@@ -388,6 +403,16 @@ public class      GroupedJPAEntityCollection<Entity>
   @Override
   public @NonNull Iterable<@NonNull Order> orderings () {
     return _groupedCollection.orderings();
+  }
+
+  @Override
+  public JPAEntityCollection<Entity> clear () {
+    return _groupedCollection.clear();
+  }
+
+  @Override
+  public @NonNull Operator getOperator () {
+    return Composition.of(_groupedCollection.getOperator(), Composition.of(_groups.toArray(new Operator[0])));
   }
 
   @Override

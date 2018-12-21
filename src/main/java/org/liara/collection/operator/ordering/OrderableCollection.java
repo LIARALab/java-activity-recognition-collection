@@ -29,9 +29,24 @@ import org.liara.collection.Collection;
 
 import java.util.List;
 
+/**
+ * An interface for collections that can be ordered.
+ */
 public interface OrderableCollection extends Collection
 {
+  /**
+   * Create a new collection that is a copy of this collection ordered in accordance with a given ordering operator.
+   * <p>
+   * Calling this method multiple times will stack orderings operations in priority from the oldest one to the newest
+   * one.
+   *
+   * @param order An ordering operation to apply.
+   *
+   * @return A new ordered instance of this collection.
+   */
   @NonNull OrderableCollection orderBy (@NonNull final Order order);
+
+  @NonNull OrderableCollection removeOrder (@NonNull final Order order);
 
   @NonNull Order getOrdering (@NonNegative @LessThan("this.getOrderingCount()") final int index);
 

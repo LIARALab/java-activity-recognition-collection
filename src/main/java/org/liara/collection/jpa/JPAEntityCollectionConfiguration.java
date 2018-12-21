@@ -28,6 +28,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.operator.cursoring.Cursor;
 import org.liara.collection.operator.filtering.Filter;
+import org.liara.collection.operator.joining.Join;
 import org.liara.collection.operator.ordering.Order;
 
 import java.util.*;
@@ -43,15 +44,20 @@ class JPAEntityCollectionConfiguration
   @NonNull
   private final Cursor _cursor;
 
+  @NonNull
+  private final Set<@NonNull Join> _joins;
+
   JPAEntityCollectionConfiguration () {
     _orderings = new ArrayList<>();
     _filters = new HashSet<>();
+    _joins = new HashSet<>();
     _cursor = Cursor.ALL;
   }
 
   private JPAEntityCollectionConfiguration (@NonNull final JPAEntityCollectionConfiguration toCopy) {
     _orderings = new ArrayList<>(toCopy._orderings);
     _filters = new HashSet<>(toCopy._filters);
+    _joins = new HashSet<>(toCopy._joins);
     _cursor = toCopy._cursor;
   }
 
@@ -61,6 +67,7 @@ class JPAEntityCollectionConfiguration
   ) {
     _orderings = new ArrayList<>(toCopy._orderings);
     _filters = new HashSet<>(toCopy._filters);
+    _joins = new HashSet<>(toCopy._joins);
     _cursor = cursor;
   }
 
@@ -83,6 +90,12 @@ class JPAEntityCollectionConfiguration
   @NonNull JPAEntityCollectionConfiguration orderBy (@NonNull final Order order) {
     @NonNull final JPAEntityCollectionConfiguration result = new JPAEntityCollectionConfiguration(this);
     result._orderings.add(order);
+    return result;
+  }
+
+  @NonNull JPAEntityCollectionConfiguration removeOrder (@NonNull final Order order) {
+    @NonNull final JPAEntityCollectionConfiguration result = new JPAEntityCollectionConfiguration(this);
+    result._orderings.remove(order);
     return result;
   }
 
@@ -120,7 +133,7 @@ class JPAEntityCollectionConfiguration
 
   @Override
   public int hashCode () {
-    return Objects.hash(_cursor, _filters, _orderings);
+    return Objects.hash(_cursor, _filters, _orderings, _joins);
   }
 
   @Override

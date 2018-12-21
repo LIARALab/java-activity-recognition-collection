@@ -21,11 +21,10 @@
  */
 package org.liara.collection.operator;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.com.google.common.collect.Iterators;
 import org.liara.collection.Collection;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
-@FunctionalInterface
 public interface Operator {
   /**
    * Apply this operator to another one and return a composition of both operators.

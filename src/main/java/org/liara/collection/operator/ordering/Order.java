@@ -21,21 +21,26 @@
  */
 package org.liara.collection.operator.ordering;
 
-import javax.persistence.metamodel.Attribute;
-
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
 import org.liara.collection.operator.Operator;
+import org.liara.collection.operator.joining.Join;
+import org.liara.collection.operator.joining.JoinableOperator;
 
+import javax.persistence.metamodel.Attribute;
 import java.util.Objects;
 
+/**
+ * An operator that describe a given way to ordering fields.
+ */
 public class Order
-       implements Operator
+  implements Operator,
+             JoinableOperator
 {
   @NonNull
   private final String _field;
-  
+
   @NonNull
   private final OrderingDirection _direction;
 
@@ -46,10 +51,10 @@ public class Order
   public static @NonNull Order field (@NonNull final Attribute<?, ?> attribute) {
     return new Order(attribute);
   }
-  
+
   /**
    * Create a new ascending ordering operation for a given field.
-   * 
+   *
    * @param field A field to order.
    */
   public Order (
@@ -73,13 +78,12 @@ public class Order
 
   /**
    * Create a new ordering operation for a given field.
-   * 
+   *
    * @param field A field to order.
    * @param direction An ordering direction.
    */
   public Order (
-    @NonNull final String field,
-    @NonNull final OrderingDirection direction
+    @NonNull final String field, @NonNull final OrderingDirection direction
   ) {
     _field = field;
     _direction = direction;
@@ -92,8 +96,7 @@ public class Order
    * @param direction An ordering direction.
    */
   public Order (
-    @NonNull final Attribute<?, ?> field,
-    @NonNull final OrderingDirection direction
+    @NonNull final Attribute<?, ?> field, @NonNull final OrderingDirection direction
   ) {
     _field = field.getName();
     _direction = direction;
@@ -189,6 +192,12 @@ public class Order
     return setDirection(OrderingDirection.DESCENDING);
   }
 
+
+  @Override
+  public @NonNull Operator join (@NonNull final Join join) {
+    return setField(_field.replace(":this", ":this." + join.getField()));
+  }
+
   /**
    * @see Order#hashCode()
    */
@@ -207,8 +216,7 @@ public class Order
 
     if (other instanceof Order) {
       final Order otherOrder = (Order) other;
-      return Objects.equals(_field, otherOrder.getField()) &&
-             Objects.equals(_direction, otherOrder.getDirection());
+      return Objects.equals(_field, otherOrder.getField()) && Objects.equals(_direction, otherOrder.getDirection());
     }
 
     return false;

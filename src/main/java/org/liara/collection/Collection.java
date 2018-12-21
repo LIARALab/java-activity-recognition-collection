@@ -37,4 +37,8 @@ public interface Collection {
   default Collection apply (final Operator operator) {
     return operator.apply(this);
   }
+
+  Collection clear ();
+
+  Operator getOperator ();
 }

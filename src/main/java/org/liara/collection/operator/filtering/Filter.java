@@ -25,6 +25,7 @@ package org.liara.collection.operator.filtering;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
+import org.liara.collection.jpa.JPAEntityCollection;
 import org.liara.collection.operator.Operator;
 
 import java.util.Map;
@@ -34,6 +35,10 @@ public interface Filter
 {
   static @NonNull Filter expression (@NonNull final String expression) {
     return new ExpressionFilter(expression);
+  }
+
+  static @NonNull Filter exists (@NonNull final JPAEntityCollection collection) {
+    return new ExistsFilter(collection);
   }
 
   @Override
@@ -48,6 +53,8 @@ public interface Filter
   @NonNull String getExpression ();
 
   @NonNull Filter setParameter (@NonNull final String name, @Nullable final Object value);
+
+  @NonNull Filter setParameters (@NonNull final Map<@NonNull String, @NonNull Object> parameters);
 
   @NonNull Filter removeParameter (@NonNull final String name);
 

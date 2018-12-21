@@ -26,6 +26,8 @@ import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
+import org.liara.collection.operator.joining.Join;
+import org.liara.collection.operator.joining.JoinableOperator;
 
 import java.util.*;
 
@@ -34,34 +36,24 @@ import java.util.*;
  *
  * @author C&eacute;dric DEMONGIVERT [cedric.demongivert@gmail.com](mailto:cedric.demongivert@gmail.com)
  */
-public final class Composition implements Operator, Iterable<Operator>
+public final class Composition
+  implements Operator,
+             Iterable<@NonNull Operator>,
+             JoinableOperator
 {
   @NonNull
   public static final Composition EMPTY = new Composition();
 
   /**
-   * Return the content of the given iterator as a composition array.
+   * Create a composition of operators.
+   *
+   * Operators will be applied by using their iteration order, the last itered operator will be applied first and the
+   * first itered operator will be the last applied.
    *
    * @param operators Operators to compose.
-   *
-   * @return A composition array.
    */
-  private static @NonNull Operator[] toArray (@NonNull final Iterator<@NonNull Operator> operators) {
-    final LinkedList<Operator> result = new LinkedList<>();
-
-    while (operators.hasNext()) {
-      final Operator operator = operators.next();
-
-      if (operator instanceof Composition) {
-        for (@NonNull final Operator childOperator : (Composition) operator) {
-          result.addLast(childOperator);
-        }
-      } else {
-        result.addLast(operator);
-      }
-    }
-
-    return result.toArray(new Operator[0]);
+  public Composition (@NonNull final Iterable<? extends Operator> operators) {
+    _operators = Composition.toArray(operators.iterator());
   }
 
   /**
@@ -77,6 +69,18 @@ public final class Composition implements Operator, Iterable<Operator>
   public static @NonNull Operator of (@NonNull final Operator... operators)
   {
     return (operators.length > 0) ? new Composition(operators) : Composition.EMPTY;
+  }
+
+  /**
+   * Create a composition of operators.
+   * <p>
+   * Operators will be applied by using their iteration order, the last itered operator will be applied first and the
+   * first itered operator will be the last applied.
+   *
+   * @param operators Operators to compose.
+   */
+  public Composition (@NonNull final Iterator<? extends Operator> operators) {
+    _operators = Composition.toArray(operators);
   }
 
   @NonNull
@@ -104,27 +108,42 @@ public final class Composition implements Operator, Iterable<Operator>
   }
 
   /**
-   * Create a composition of operators.
-   *
-   * Operators will be applied by using their iteration order, the last itered operator will be applied first and the
-   * first itered operator will be the last applied.
+   * Return the content of the given iterator as a composition array.
    *
    * @param operators Operators to compose.
+   *
+   * @return A composition array.
    */
-  public Composition (@NonNull final Iterable<Operator> operators) {
-    _operators = Composition.toArray(operators.iterator());
+  private static @NonNull Operator[] toArray (@NonNull final Iterator<@NonNull ? extends Operator> operators) {
+    final LinkedList<Operator> result = new LinkedList<>();
+
+    while (operators.hasNext()) {
+      final Operator operator = operators.next();
+
+      if (operator instanceof Composition) {
+        for (@NonNull final Operator childOperator : (Composition) operator) {
+          result.addLast(childOperator);
+        }
+      } else {
+        result.addLast(operator);
+      }
+    }
+
+    return result.toArray(new Operator[0]);
   }
 
   /**
-   * Create a composition of operators.
+   * Compose operators.
    *
-   * Operators will be applied by using their iteration order, the last itered operator will be applied first and the
-   * first itered operator will be the last applied.
+   * Operators will be applied by using their declaration order, the most right operator will be applied first and
+   * the most left operator will be the last applied.
    *
    * @param operators Operators to compose.
+   *
+   * @return A composition of the given operators.
    */
-  public Composition (@NonNull final Iterator<Operator> operators) {
-    _operators = Composition.toArray(operators);
+  public static @NonNull Operator of (final java.util.@NonNull Collection<@NonNull ? extends Operator> operators) {
+    return (operators.size() > 0) ? new Composition(operators) : Composition.EMPTY;
   }
 
   /**
@@ -223,5 +242,16 @@ public final class Composition implements Operator, Iterable<Operator>
     }
 
     return false;
+  }
+
+  @Override
+  public @NonNull Operator join (@NonNull final Join join) {
+    @NonNull final Operator[] joined = new Operator[_operators.length];
+
+    for (int index = 0; index < _operators.length; ++index) {
+      joined[index] = join.apply(_operators[index]);
+    }
+
+    return new Composition(joined);
   }
 }

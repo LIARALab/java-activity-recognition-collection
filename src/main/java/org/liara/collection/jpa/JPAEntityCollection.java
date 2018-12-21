@@ -21,14 +21,14 @@
  */
 package org.liara.collection.jpa;
 
-import java.util.*;
-
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.checkerframework.checker.index.qual.LessThan;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
+import org.liara.collection.operator.Composition;
+import org.liara.collection.operator.Operator;
 import org.liara.collection.operator.cursoring.Cursor;
 import org.liara.collection.operator.cursoring.CursorableCollection;
 import org.liara.collection.operator.filtering.Filter;
@@ -40,6 +40,7 @@ import org.liara.collection.operator.ordering.OrderableCollection;
 
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
+import java.util.*;
 
 /**
  * A collection of database entities.
@@ -348,6 +349,14 @@ public class JPAEntityCollection<Entity>
   }
 
   /**
+   * @see OrderableCollection#removeOrder(Order)
+   */
+  @Override
+  public @NonNull JPAEntityCollection<Entity> removeOrder (@NonNull final Order order) {
+    return new JPAEntityCollection<>(this, _configuration.removeOrder(order));
+  }
+
+  /**
    * @see OrderableCollection#getOrdering(int)
    */
   @Override
@@ -427,6 +436,11 @@ public class JPAEntityCollection<Entity>
     return new GroupedJPAEntityCollection<>(this, Collections.singletonList(group));
   }
 
+  @Override
+  public @NonNull JPAEntityCollection<Entity> ungroup (@NonNull final Group group) {
+    return this;
+  }
+
   /**
    * @see GroupableCollection#getGroup(int)
    */
@@ -452,6 +466,20 @@ public class JPAEntityCollection<Entity>
 
   private @NonNull JPAEntityCollectionConfiguration getConfiguration () {
     return _configuration;
+  }
+
+  @Override
+  public @NonNull JPAEntityCollection<Entity> clear () {
+    return new JPAEntityCollection<>(this, new JPAEntityCollectionConfiguration());
+  }
+
+  @Override
+  public @NonNull Operator getOperator () {
+    return Composition.of(
+      Composition.of(_configuration.getOrderings().toArray(new Operator[0])),
+      Composition.of(_configuration.getFilters().toArray(new Operator[0])),
+      Composition.of(_configuration.getCursor())
+    );
   }
 
   @Override

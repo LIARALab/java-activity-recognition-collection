@@ -24,13 +24,18 @@ package org.liara.collection.operator.filtering;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.liara.collection.operator.Operator;
+import org.liara.collection.operator.joining.Join;
+import org.liara.collection.operator.joining.JoinableOperator;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class ExpressionFilter implements Filter
+public class ExpressionFilter
+  implements Filter,
+             JoinableOperator
 {
   @NonNull
   private final Map<@NonNull String, @NonNull Object> _parameters;
@@ -82,6 +87,14 @@ public class ExpressionFilter implements Filter
   }
 
   @Override
+  public @NonNull ExpressionFilter setParameters (
+    @NonNull final Map<@NonNull String, @NonNull Object> parameters
+  )
+  {
+    return new ExpressionFilter(_expression, parameters);
+  }
+
+  @Override
   public @NonNull ExpressionFilter removeParameter (
     @NonNull final String name
   ) {
@@ -98,6 +111,11 @@ public class ExpressionFilter implements Filter
   @Override
   public @NonNull Map<@NonNull String, @NonNull Object> getParameters () {
     return Collections.unmodifiableMap(_parameters);
+  }
+
+  @Override
+  public @NonNull Operator join (@NonNull final Join join) {
+    return setExpression(_expression.replace(":this", ":this." + join.getField()));
   }
 
   /**

@@ -21,9 +21,10 @@
  */
 
 plugins {
-  id 'jacoco'
   id 'java-library'
   id 'groovy'
+  id 'jacoco'
+  id 'maven-publish'
   id 'idea'
   id 'eclipse'
 }
@@ -33,10 +34,54 @@ repositories {
   jcenter()
 }
 
-defaultTasks 'clean', 'test', 'build'
+defaultTasks 'clean', 'test', 'build', 'publishToMavenLocal'
 
-sourceCompatibility = '1.9'
-targetCompatibility = '1.9'
+sourceCompatibility = '1.10'
+targetCompatibility = '1.10'
+
+publishing {
+  publications {
+    library(MavenPublication) {
+      groupId = 'org.liara'
+      artifactId = 'collection'
+      version = '0.1-SNAPSHOT'
+
+      from components.java
+
+      /*
+      pom {
+        name = 'LIARA - REST Collection'
+        description = 'A Java library for handling REST collections.'
+        url = 'https://github.com/LIARALab/java-rest-collection'
+        licenses {
+          license {
+            name = 'MIT'
+            url = 'https://opensource.org/licenses/MIT'
+          }
+        }
+        developers {
+          developer {
+            id = 'cedric-demongivert'
+            name = 'Cédric DEMONGIVERT'
+            email = 'cedric.demongivert@gmail.com'
+          }
+        }
+        scm {
+          connection = 'scm:git:git://github.com/LIARALab/java-rest-collection.git'
+          url = 'https://github.com/LIARALab/java-rest-collection'
+        }
+      }
+      */
+    }
+  }
+
+  repositories {
+    maven {
+      url = version.endsWith('SNAPSHOT') ? "$buildDir/repos/snapshots"
+                                         : "$buildDir/repos/releases"
+    }
+  }
+}
 
 dependencies {
   implementation group: 'org.checkerframework', name: 'checker', version: '2.5.4'
