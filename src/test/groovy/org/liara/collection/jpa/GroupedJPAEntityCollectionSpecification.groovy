@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@ import org.liara.collection.Specification
 import org.liara.collection.operator.cursoring.Cursor
 import org.liara.collection.operator.filtering.Filter
 import org.liara.collection.operator.grouping.Group
-import org.liara.collection.operator.ordering.Order
+import org.liara.collection.operator.ordering.ExpressionOrder
 import org.mockito.Mockito
 
 import javax.persistence.EntityManager
@@ -651,7 +651,7 @@ class GroupedJPAEntityCollectionSpecification extends Specification {
     final JPAEntityCollection<Object> first = Mockito.mock(JPAEntityCollection.class)
     final JPAEntityCollection<Object> updated = Mockito.mock(JPAEntityCollection.class)
 
-    Mockito.when(first.orderBy(Mockito.any(Order.class))).thenReturn(updated)
+    Mockito.when(first.orderBy(Mockito.any(ExpressionOrder.class))).thenReturn(updated)
 
     and: "a grouped JPA entity collection that wrap the first entity collection"
     final GroupedJPAEntityCollection<Object> groupedCollection = new GroupedJPAEntityCollection<>(
@@ -659,7 +659,7 @@ class GroupedJPAEntityCollectionSpecification extends Specification {
     )
 
     when: "we order the grouped collection"
-    final Order order = Mockito.mock(Order.class)
+    final ExpressionOrder order = Mockito.mock(ExpressionOrder.class)
     final GroupedJPAEntityCollection<Object> result = groupedCollection.orderBy(order)
 
     then: "we expect to get an updated copy of the source grouped collection"
@@ -673,7 +673,7 @@ class GroupedJPAEntityCollectionSpecification extends Specification {
   def "it allows you to get an order from the underlying collection" () {
     given: "a JPA entity collection"
     final JPAEntityCollection<Object> collection = Mockito.mock(JPAEntityCollection.class)
-    final Order order = Mockito.mock(Order.class)
+    final ExpressionOrder order = Mockito.mock(ExpressionOrder.class)
     Mockito.when(collection.getOrdering(Mockito.anyInt())).thenReturn(order)
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
@@ -682,7 +682,7 @@ class GroupedJPAEntityCollectionSpecification extends Specification {
     )
 
     when: "we get an order from the grouped collection"
-    final Order result = groupedCollection.getOrdering(5)
+    final ExpressionOrder result = groupedCollection.getOrdering(5)
 
     then: "we expect to get the order from the underlying collection"
     isTrue Mockito.verify(collection).getOrdering(5)
@@ -692,11 +692,11 @@ class GroupedJPAEntityCollectionSpecification extends Specification {
   def "it allows you to get all orders from the underlying collection" () {
     given: "a JPA entity collection"
     final JPAEntityCollection<Object> collection = Mockito.mock(JPAEntityCollection.class)
-    final List<Order> orders = [
-      Mockito.mock(Order.class),
-      Mockito.mock(Order.class),
-      Mockito.mock(Order.class),
-      Mockito.mock(Order.class)
+    final List<ExpressionOrder> orders = [
+      Mockito.mock(ExpressionOrder.class),
+      Mockito.mock(ExpressionOrder.class),
+      Mockito.mock(ExpressionOrder.class),
+      Mockito.mock(ExpressionOrder.class)
     ]
 
     Mockito.when(collection.getOrderings()).thenReturn(orders)
@@ -707,7 +707,7 @@ class GroupedJPAEntityCollectionSpecification extends Specification {
     )
 
     when: "we get all orders from the grouped collection"
-    final List<Order> result = groupedCollection.orderings
+    final List<ExpressionOrder> result = groupedCollection.orderings
 
     then: "we expect to get all orders from the underlying collection"
     isTrue Mockito.verify(collection).getOrderings()
@@ -717,11 +717,11 @@ class GroupedJPAEntityCollectionSpecification extends Specification {
   def "it allows you to get all orders from the underlying collection as an iterable" () {
     given: "a JPA entity collection"
     final JPAEntityCollection<Object> collection = Mockito.mock(JPAEntityCollection.class)
-    final List<Order> orders = [
-      Mockito.mock(Order.class),
-      Mockito.mock(Order.class),
-      Mockito.mock(Order.class),
-      Mockito.mock(Order.class)
+    final List<ExpressionOrder> orders = [
+      Mockito.mock(ExpressionOrder.class),
+      Mockito.mock(ExpressionOrder.class),
+      Mockito.mock(ExpressionOrder.class),
+      Mockito.mock(ExpressionOrder.class)
     ]
 
     Mockito.when(collection.orderings()).thenReturn(orders)
@@ -732,7 +732,7 @@ class GroupedJPAEntityCollectionSpecification extends Specification {
     )
 
     when: "we get all orders from the grouped collection as an iterable"
-    final Iterable<Order> result = groupedCollection.orderings()
+    final Iterable<ExpressionOrder> result = groupedCollection.orderings()
 
     then: "we expect to get all orders from the underlying collection as an iterable"
     isTrue Mockito.verify(collection).orderings()

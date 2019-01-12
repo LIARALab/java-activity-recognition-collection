@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,7 @@ import org.liara.collection.operator.cursoring.Cursor
 import org.liara.collection.operator.filtering.Filter
 import org.liara.collection.operator.grouping.Group
 import org.liara.collection.operator.grouping.GroupableCollection
-import org.liara.collection.operator.ordering.Order
+import org.liara.collection.operator.ordering.ExpressionOrder
 import org.mockito.Mockito
 
 import javax.persistence.EntityManager
@@ -83,7 +83,7 @@ class JPAEntityCollectionSpecification extends Specification {
     final Operator operators = Composition.of(
       Cursor.ALL,
       Filter.expression(':this.first = :value').setParameter("value", 10),
-      Order.field(':this.second').descending(),
+      ExpressionOrder.expression(':this.second').descending(),
       Filter.expression(':this.second > :value').setParameter('value', 65)
     )
 
@@ -118,10 +118,10 @@ class JPAEntityCollectionSpecification extends Specification {
       final JPAEntityCollection<Object> collection = new JPAEntityCollection<>(manager, Object.class)
 
     and: "a chain of ordering operators"
-      final Order[] orderings = [
-        Order.field(":this.third").descending(),
-        Order.field(":this.second").ascending(),
-        Order.field(":this.first").descending()
+    final ExpressionOrder[] orderings = [
+      ExpressionOrder.expression(":this.third").descending(),
+      ExpressionOrder.expression(":this.second").ascending(),
+      ExpressionOrder.expression(":this.first").descending()
       ]
 
     when: "we order the collection"
@@ -161,9 +161,9 @@ class JPAEntityCollectionSpecification extends Specification {
 
     and: "an ordered collection"
     final JPAEntityCollection<Object> collection = Composition.of(
-      Order.field(":this.third").descending(),
-      Order.field(":this.second").ascending(),
-      Order.field(":this.first").descending()
+      ExpressionOrder.expression(":this.third").descending(),
+      ExpressionOrder.expression(":this.second").ascending(),
+      ExpressionOrder.expression(":this.first").descending()
     ).apply(new JPAEntityCollection<>(manager, Object.class)) as JPAEntityCollection<Object>
 
     when: "we get the ordering clause"
@@ -351,8 +351,8 @@ class JPAEntityCollectionSpecification extends Specification {
     and: "a list of operators"
     final Operator[] operators = [
       Filter.expression(":this.first = 5"),
-      Order.field("second").descending(),
-      Order.field("first").ascending(),
+      ExpressionOrder.expression("second").descending(),
+      ExpressionOrder.expression("first").ascending(),
       Filter.expression(":this.last > :value").setParameter("value", 10),
       Filter.expression(":this.third IN :list").setParameter("list", ["banana", "apple", "pineapple"]),
       Cursor.DEFAULT
@@ -411,8 +411,8 @@ class JPAEntityCollectionSpecification extends Specification {
 
     and: "a list of operators"
     final Operator[] operators = [
-      Order.field("second").descending(),
-      Order.field("first").ascending(),
+      ExpressionOrder.expression("second").descending(),
+      ExpressionOrder.expression("first").ascending(),
       Cursor.DEFAULT
     ]
 
@@ -465,7 +465,7 @@ class JPAEntityCollectionSpecification extends Specification {
     and: "a collection"
     final JPAEntityCollection<Object> collection = new JPAEntityCollection<>(manager, Object.class)
 
-    expect: "the collection to not have any grouped field"
+    expect: "the collection to not have any grouped expression"
     collection.groupCount == 0
     collection.groups.empty
     !collection.grouped
@@ -480,8 +480,8 @@ class JPAEntityCollectionSpecification extends Specification {
     and: "a collection"
     final JPAEntityCollection<Object> collection = Composition.of(
       Filter.expression(":this.first = 5"),
-      Order.field("second").descending(),
-      Order.field("first").ascending(),
+      ExpressionOrder.expression("second").descending(),
+      ExpressionOrder.expression("first").ascending(),
       Filter.expression(":this.last > :value").setParameter("value", 10),
       Filter.expression(":this.third IN :list").setParameter("list", ["banana", "apple", "pineapple"]),
       Cursor.NONE.setOffset(10).setLimit(20)
@@ -514,7 +514,7 @@ class JPAEntityCollectionSpecification extends Specification {
     final JPAEntityCollection<Object> collection = Mockito.spy(
       Composition.of(
         Filter.expression(":this.first = 5"),
-        Order.field("second").descending(),
+        ExpressionOrder.expression("second").descending(),
         Cursor.NONE.setOffset(10).setLimit(20)
       ).apply(
         new JPAEntityCollection<Object>(manager, Object.class)
@@ -544,7 +544,7 @@ class JPAEntityCollectionSpecification extends Specification {
     final JPAEntityCollection<Object> collection = Mockito.spy(
       Composition.of(
         Filter.expression(":this.first = 5"),
-        Order.field("second").descending(),
+        ExpressionOrder.expression("second").descending(),
         Cursor.NONE.setOffset(10).setLimit(20)
       ).apply(
         new JPAEntityCollection<Object>(manager, Object.class)
@@ -578,7 +578,7 @@ class JPAEntityCollectionSpecification extends Specification {
     and: "a collection"
     final JPAEntityCollection<Object> collection = Composition.of(
       Filter.expression(":this.first = 5"),
-      Order.field("second").descending(),
+      ExpressionOrder.expression("second").descending(),
       Cursor.NONE.setOffset(10).setLimit(20)
     ).apply(
       new JPAEntityCollection<Object>(manager, Object.class)
@@ -595,7 +595,7 @@ class JPAEntityCollectionSpecification extends Specification {
     and: "a collection"
     final JPAEntityCollection<Object> collection = Composition.of(
       Filter.expression(":this.first = 5"),
-      Order.field("second").descending(),
+      ExpressionOrder.expression("second").descending(),
       Cursor.NONE.setOffset(10).setLimit(20)
     ).apply(
       new JPAEntityCollection<Object>(manager, Object.class)
@@ -662,8 +662,8 @@ class JPAEntityCollectionSpecification extends Specification {
     final Operator[] operators = [
       Filter.expression(":this.first = 3"),
       Filter.expression(":this.first = :value").setParameter("value", 3),
-      Order.field(":this.first").ascending(),
-      Order.field(":this.first").descending(),
+      ExpressionOrder.expression(":this.first").ascending(),
+      ExpressionOrder.expression(":this.first").descending(),
       Cursor.ALL, Cursor.DEFAULT
     ]
 
@@ -691,8 +691,8 @@ class JPAEntityCollectionSpecification extends Specification {
     final Operator[] operators = [
       Filter.expression(":this.first = 3"),
       Filter.expression(":this.first = :value").setParameter("value", 3),
-      Order.field(":this.first").ascending(),
-      Order.field(":this.first").descending(),
+      ExpressionOrder.expression(":this.first").ascending(),
+      ExpressionOrder.expression(":this.first").descending(),
       Cursor.ALL, Cursor.DEFAULT
     ]
 
@@ -711,7 +711,7 @@ class JPAEntityCollectionSpecification extends Specification {
     final JPAEntityCollection<Object> collection = Composition.of(
       Cursor.DEFAULT,
       Filter.expression(":this.first = 5"),
-      Order.field("plopl").ascending()
+      ExpressionOrder.expression("plopl").ascending()
     ).apply(new JPAEntityCollection<>(manager, Object.class)) as JPAEntityCollection<Object>
 
     and: 'a group operator'

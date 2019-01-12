@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
 import org.liara.collection.jpa.JPAEntityCollection;
 import org.liara.collection.operator.Operator;
+import org.liara.collection.operator.joining.Join;
 
 import java.util.Map;
 
@@ -41,9 +42,13 @@ public interface Filter
     return new ExistsFilter(collection);
   }
 
+  static @NonNull Filter join (@NonNull final Join join, @NonNull final Filter filter) {
+    return new JoinFilter(join, filter);
+  }
+
   @Override
   default @NonNull Collection apply (@NonNull final Collection input) {
-    if (input instanceof  FilterableCollection) {
+    if (input instanceof FilterableCollection) {
       return ((FilterableCollection) input).addFilter(this);
     }
 

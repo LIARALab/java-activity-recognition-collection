@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +37,8 @@ import org.liara.collection.operator.filtering.Filter;
 import org.liara.collection.operator.filtering.FilterableCollection;
 import org.liara.collection.operator.grouping.Group;
 import org.liara.collection.operator.grouping.GroupableCollection;
+import org.liara.collection.operator.joining.Join;
+import org.liara.collection.operator.joining.JoinableCollection;
 import org.liara.collection.operator.ordering.Order;
 import org.liara.collection.operator.ordering.OrderableCollection;
 
@@ -52,7 +54,8 @@ public class      GroupedJPAEntityCollection<Entity>
                   CursorableCollection,
                   OrderableCollection,
                   FilterableCollection,
-                  GroupableCollection
+                  GroupableCollection,
+                  JoinableCollection
 {
   @NonNull
   private final JPAEntityCollection<Entity> _groupedCollection;
@@ -362,14 +365,15 @@ public class      GroupedJPAEntityCollection<Entity>
 
   /**
    * @see OrderableCollection#orderBy(Order)
+   * @param order
    */
   @Override
-  public @NonNull GroupedJPAEntityCollection<Entity> orderBy (@NonNull final Order order) {
+  public GroupedJPAEntityCollection<Entity> orderBy (final Order order) {
     return new GroupedJPAEntityCollection<>(this, _groupedCollection.orderBy(order));
   }
 
   @Override
-  public @NonNull OrderableCollection removeOrder (@NonNull final Order order) {
+  public GroupedJPAEntityCollection<Entity> removeOrder (final Order order) {
     return new GroupedJPAEntityCollection<>(this, _groupedCollection.removeOrder(order));
   }
 
@@ -403,6 +407,36 @@ public class      GroupedJPAEntityCollection<Entity>
   @Override
   public @NonNull Iterable<@NonNull Order> orderings () {
     return _groupedCollection.orderings();
+  }
+
+  @Override
+  public @NonNull GroupedJPAEntityCollection<Entity> join (@NonNull final Join<?> relation) {
+    return new GroupedJPAEntityCollection<>(this, _groupedCollection.join(relation));
+  }
+
+  @Override
+  public @NonNull GroupedJPAEntityCollection<Entity> disjoin (@NonNull final Join<?> relation) {
+    return new GroupedJPAEntityCollection<>(this, _groupedCollection.disjoin(relation));
+  }
+
+  @Override
+  public @NonNull GroupedJPAEntityCollection<Entity> disjoin (@NonNull final String name) {
+    return new GroupedJPAEntityCollection<>(this, _groupedCollection.disjoin(name));
+  }
+
+  @Override
+  public @NonNegative int getJoinCount () {
+    return _groupedCollection.getJoinCount();
+  }
+
+  @Override
+  public @NonNull Map<@NonNull String, @NonNull Join> getJoins () {
+    return _groupedCollection.getJoins();
+  }
+
+  @Override
+  public @NonNull Iterable<@NonNull Join> joins () {
+    return _groupedCollection.joins();
   }
 
   @Override

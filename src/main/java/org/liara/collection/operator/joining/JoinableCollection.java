@@ -22,52 +22,28 @@
 
 package org.liara.collection.operator.joining;
 
+import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.Collection;
-import org.liara.collection.operator.Operator;
 
-public interface Join<Related>
-  extends Operator
+import java.util.Map;
+
+public interface JoinableCollection
+  extends Collection
 {
-  static <T> InnerJoin<T> inner (@NonNull final Class<T> relatedClass, @NonNull final String name) {
-    return new InnerJoin<>(relatedClass, name);
-  }
+  @NonNull JoinableCollection join (@NonNull final Join<?> relation);
 
-  static <T> InnerJoin<T> inner (@NonNull final Class<T> relatedClass) {
-    return new InnerJoin<>(relatedClass);
-  }
+  @NonNull JoinableCollection disjoin (@NonNull final Join<?> relation);
 
-  static <T> Embeddable<T> embeddable (@NonNull final Class<T> relatedClass, @NonNull final String name) {
-    return new Embeddable<>(relatedClass, name);
-  }
+  @NonNull JoinableCollection disjoin (@NonNull final String name);
 
-  static <T> Embeddable<T> embeddable (@NonNull final Class<T> relatedClass) {
-    return new Embeddable<>(relatedClass);
-  }
+  @NonNegative int getJoinCount ();
 
-  @NonNull String getName ();
+  @NonNull Map<@NonNull String, @NonNull Join> getJoins ();
 
-  default @NonNull String identifier () {
-    return getName();
-  }
+  @NonNull Iterable<@NonNull Join> joins ();
 
-  @NonNull Class<Related> getRelatedClass ();
-
-  @Override
-  default @NonNull Collection apply (final @NonNull Collection input) {
-    if (input instanceof JoinableCollection) {
-      return ((JoinableCollection) input).join(this);
-    }
-
-    return input;
-  }
-
-  @Override
-  default @NonNull Operator apply (@NonNull final Operator child) {
-    if (child instanceof JoinableOperator) {
-      return ((JoinableOperator) child).join(this);
-    } else {
-      return Operator.super.apply(child);
-    }
+  default boolean hasJoins () {
+    return getJoinCount() > 0;
   }
 }

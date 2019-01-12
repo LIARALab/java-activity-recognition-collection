@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,47 +28,49 @@ import spock.lang.Specification
 
 import javax.persistence.metamodel.Attribute
 
-class OrderSpecification extends Specification {
+class ExpressionOrderSpecification
+  extends Specification
+{
   def "it instantiate an ascending ordering operator for a given field by default" () {
-    when: "we create an ordering operator for a given field"
-      final Order order = new Order(":this.field")
+    when: "we create an ordering operator for a given expression"
+    final ExpressionOrder order = new ExpressionOrder(":this.expression")
 
-    then: "we expect to create an ascending operator for the given field"
+    then: "we expect to create an ascending operator for the given expression"
       order.direction == OrderingDirection.ASCENDING
-      order.field == ":this.field"
+    order.expression == ":this.expression"
   }
 
   def "it is instantiable from an attribute" () {
     given: "an attribute"
     final Attribute<?, ?> attribute = Mockito.mock(Attribute.class)
-    Mockito.when(attribute.getName()).thenReturn('field')
+    Mockito.when(attribute.getName()).thenReturn('expression')
 
-    when: "we create an ordering operator for a given field"
-    final Order order = new Order(attribute)
-    final Order builtOrder = Order.field(attribute)
+    when: "we create an ordering operator for a given expression"
+    final ExpressionOrder order = new ExpressionOrder(attribute)
+    final ExpressionOrder builtOrder = ExpressionOrder.expression(attribute)
 
-    then: "we expect to create an ascending operator for the given field"
+    then: "we expect to create an ascending operator for the given expression"
     order.direction == OrderingDirection.ASCENDING
-    order.field == ":this.field"
+    order.expression == ":this.expression"
     builtOrder.direction == OrderingDirection.ASCENDING
-    builtOrder.field == ":this.field"
+    builtOrder.expression == ":this.expression"
   }
 
   def "it allow to instantiate a fully configured ordering operator for a given field" () {
-    when: "we create an ordering operator with a given direction for a given field"
-      final Order order = new Order(":this.field", OrderingDirection.DESCENDING)
+    when: "we create an ordering operator with a given direction for a given expression"
+    final ExpressionOrder order = new ExpressionOrder(":this.expression", OrderingDirection.DESCENDING)
 
-    then: "we expect to get an ordering operator for the given field with the given direction"
+    then: "we expect to get an ordering operator for the given expression with the given direction"
       order.direction == OrderingDirection.DESCENDING
-      order.field == ":this.field"
+    order.expression == ":this.expression"
   }
 
   def "it allow to instantiate a copy of another ordering operator" () {
     given: "an ordering operator"
-      final Order source = new Order(":this.field", OrderingDirection.DESCENDING)
+    final ExpressionOrder source = new ExpressionOrder(":this.expression", OrderingDirection.DESCENDING)
 
     when: "we instantiate a copy of a given ordering operator"
-      final Order copy = new Order(source)
+    final ExpressionOrder copy = new ExpressionOrder(source)
 
     then: "we expect to get a copy of the source operator"
       copy == source
@@ -78,98 +80,98 @@ class OrderSpecification extends Specification {
   def "it allow to instantiate an ordering operator from a JPA attribute" () {
     given: "a JPA attribute"
       final Attribute<?, ?> attribute = Mockito.mock(Attribute.class)
-      Mockito.when(attribute.getName()).thenReturn("field")
+    Mockito.when(attribute.getName()).thenReturn("expression")
 
     when: "we create an ordering operator from the given attribute"
-      final Order order = new Order(attribute, OrderingDirection.DESCENDING)
+    final ExpressionOrder order = new ExpressionOrder(attribute, OrderingDirection.DESCENDING)
 
     then: "we expect to get an operator that order the given attribute name"
-      order.field == "field"
+    order.expression == "expression"
       order.direction == OrderingDirection.DESCENDING
   }
 
   def "it allow to create a copy of an ordering operator that order another field" () {
     given: "an ordering operator"
-      final Order source = new Order(":this.field", OrderingDirection.DESCENDING)
+    final ExpressionOrder source = new ExpressionOrder(":this.expression", OrderingDirection.DESCENDING)
 
-    when: "we update the ordered field of this ordering operator"
-      final Order copy = source.setField(":this.otherField")
+    when: "we update the ordered expression of this ordering operator"
+    final ExpressionOrder copy = source.setExpression(":this.otherField")
 
-    then: "we expect to get a copy of the source operator that order the given field"
-      copy.field == ":this.otherField"
+    then: "we expect to get a copy of the source operator that order the given expression"
+    copy.expression == ":this.otherField"
       copy.direction == OrderingDirection.DESCENDING
-      source.field == ":this.field"
+    source.expression == ":this.expression"
       source.direction == OrderingDirection.DESCENDING
       !copy.is(source)
   }
 
   def "it allow to create a copy of an ordering operator that order another field by using a JPA attribute" () {
     given: "an ordering operator"
-    final Order source = new Order(":this.field", OrderingDirection.DESCENDING)
+    final ExpressionOrder source = new ExpressionOrder(":this.expression", OrderingDirection.DESCENDING)
 
     and: "a JPA attribute"
     final Attribute<?, ?> attribute = Mockito.mock(Attribute.class)
     Mockito.when(attribute.getName()).thenReturn("otherField")
 
-    when: "we update the ordered field of this ordering operator"
-    final Order copy = source.setField(attribute)
+    when: "we update the ordered expression of this ordering operator"
+    final ExpressionOrder copy = source.setField(attribute)
 
-    then: "we expect to get a copy of the source operator that order the given field"
-    copy.field == "otherField"
+    then: "we expect to get a copy of the source operator that order the given expression"
+    copy.expression == "otherField"
     copy.direction == OrderingDirection.DESCENDING
-    source.field == ":this.field"
+    source.expression == ":this.expression"
     source.direction == OrderingDirection.DESCENDING
     !copy.is(source)
   }
 
   def "it allow to create a copy of an ordering operator with a different ordering direction" () {
     given: "an ordering operator"
-    final Order source = new Order(":this.field", OrderingDirection.DESCENDING)
+    final ExpressionOrder source = new ExpressionOrder(":this.expression", OrderingDirection.DESCENDING)
 
-    when: "we update the ordered field of this ordering operator"
-    final Order copy = source.setDirection(OrderingDirection.ASCENDING)
+    when: "we update the ordered expression of this ordering operator"
+    final ExpressionOrder copy = source.setDirection(OrderingDirection.ASCENDING)
 
-    then: "we expect to get a copy of the source operator that order the given field"
-    copy.field == ":this.field"
+    then: "we expect to get a copy of the source operator that order the given expression"
+    copy.expression == ":this.expression"
     copy.direction == OrderingDirection.ASCENDING
-    source.field == ":this.field"
+    source.expression == ":this.expression"
     source.direction == OrderingDirection.DESCENDING
     !copy.is(source)
   }
 
   def "it allow to get a copy with a specific ordering by calling ascending" () {
     given: "an ordering operator"
-    final Order source = new Order(":this.field", OrderingDirection.DESCENDING)
+    final ExpressionOrder source = new ExpressionOrder(":this.expression", OrderingDirection.DESCENDING)
 
-    when: "we update the ordered field of this ordering operator"
-    final Order copy = source.ascending()
+    when: "we update the ordered expression of this ordering operator"
+    final ExpressionOrder copy = source.ascending()
 
-    then: "we expect to get a copy of the source operator that order the given field"
-    copy.field == ":this.field"
+    then: "we expect to get a copy of the source operator that order the given expression"
+    copy.expression == ":this.expression"
     copy.direction == OrderingDirection.ASCENDING
-    source.field == ":this.field"
+    source.expression == ":this.expression"
     source.direction == OrderingDirection.DESCENDING
     !copy.is(source)
   }
 
   def "it allow to get a copy with a specific ordering by calling descending" () {
     given: "an ordering operator"
-    final Order source = new Order(":this.field", OrderingDirection.ASCENDING)
+    final ExpressionOrder source = new ExpressionOrder(":this.expression", OrderingDirection.ASCENDING)
 
-    when: "we update the ordered field of this ordering operator"
-    final Order copy = source.descending()
+    when: "we update the ordered expression of this ordering operator"
+    final ExpressionOrder copy = source.descending()
 
-    then: "we expect to get a copy of the source operator that order the given field"
-    copy.field == ":this.field"
+    then: "we expect to get a copy of the source operator that order the given expression"
+    copy.expression == ":this.expression"
     copy.direction == OrderingDirection.DESCENDING
-    source.field == ":this.field"
+    source.expression == ":this.expression"
     source.direction == OrderingDirection.ASCENDING
     !copy.is(source)
   }
 
   def "it does nothing when it is applied to a unorderable collection" () {
     given: "an order"
-    final Order order = new Order(":this.field", OrderingDirection.ASCENDING)
+    final ExpressionOrder order = new ExpressionOrder(":this.expression", OrderingDirection.ASCENDING)
 
     and: "an unorderable collection"
     final Collection collection = Mockito.mock(Collection.class)
@@ -183,7 +185,7 @@ class OrderSpecification extends Specification {
 
   def "it update an orderable collection when it is applied to a orderable collection" () {
     given: "an order"
-    final Order order = new Order(":this.field", OrderingDirection.ASCENDING)
+    final ExpressionOrder order = new ExpressionOrder(":this.expression", OrderingDirection.ASCENDING)
 
     and: "an orderable collection"
     final OrderableCollection collection = Mockito.mock(OrderableCollection.class)
@@ -199,20 +201,24 @@ class OrderSpecification extends Specification {
 
   def 'it define a custom equals method' () {
     expect: 'equal operator to behave accordingly with the standards'
-    Order.field(':this.other') != null
-    final Order instance = Order.field(':this.other')
+    ExpressionOrder.expression(':this.other') != null
+    final ExpressionOrder instance = ExpressionOrder.expression(':this.other')
     instance == instance
-    Order.field(':this.first') == Order.field(':this.first')
-    Order.field(':this.first') != Order.field(':this.other')
-    Order.field(':this.first').descending() != Order.field(':this.first').ascending()
-    Order.field(':this.first') != new Object()
+    ExpressionOrder.expression(':this.first') == ExpressionOrder.expression(':this.first')
+    ExpressionOrder.expression(':this.first') != ExpressionOrder.expression(':this.other')
+    ExpressionOrder.expression(':this.first').descending() != ExpressionOrder.expression(':this.first').ascending()
+    ExpressionOrder.expression(':this.first') != new Object()
   }
 
   def 'it define a custom hashcode method' () {
     expect: 'hashcode operator to behave accordingly with the standards'
-    Order.field(':this.other').hashCode() == Order.field(':this.other').hashCode()
-    Order.field(':this.other').hashCode() != Order.field(':this.first').hashCode()
-    Order.field(':this.other').descending().hashCode() == Order.field(':this.other').descending().hashCode()
-    Order.field(':this.other').ascending().hashCode() != Order.field(':this.other').descending().hashCode()
+    ExpressionOrder.expression(':this.other').hashCode() == ExpressionOrder.expression(':this.other').hashCode()
+    ExpressionOrder.expression(':this.other').hashCode() != ExpressionOrder.expression(':this.first').hashCode()
+    ExpressionOrder.expression(':this.other').descending().hashCode() == ExpressionOrder.expression(
+      ':this.other'
+    ).descending().hashCode()
+    ExpressionOrder.expression(':this.other').ascending().hashCode() != ExpressionOrder.expression(
+      ':this.other'
+    ).descending().hashCode()
   }
 }

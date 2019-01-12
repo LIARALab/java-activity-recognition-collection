@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,8 @@ import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
+import org.liara.collection.CollectionConfiguration;
+import org.liara.collection.CollectionConfigurationBuilder;
 import org.liara.collection.operator.Composition;
 import org.liara.collection.operator.Operator;
 import org.liara.collection.operator.cursoring.Cursor;
@@ -35,6 +37,10 @@ import org.liara.collection.operator.filtering.Filter;
 import org.liara.collection.operator.filtering.FilterableCollection;
 import org.liara.collection.operator.grouping.Group;
 import org.liara.collection.operator.grouping.GroupableCollection;
+import org.liara.collection.operator.joining.Embeddable;
+import org.liara.collection.operator.joining.InnerJoin;
+import org.liara.collection.operator.joining.Join;
+import org.liara.collection.operator.joining.JoinableCollection;
 import org.liara.collection.operator.ordering.Order;
 import org.liara.collection.operator.ordering.OrderableCollection;
 
@@ -55,7 +61,8 @@ public class JPAEntityCollection<Entity>
                   CursorableCollection,
                   OrderableCollection,
                   FilterableCollection,
-                  GroupableCollection
+                  GroupableCollection,
+                  JoinableCollection
 {
   @NonNull
   private final EntityManager _entityManager;
@@ -64,7 +71,7 @@ public class JPAEntityCollection<Entity>
   private final Class<Entity> _contentType;
 
   @NonNull
-  private final JPAEntityCollectionConfiguration _configuration;
+  private final CollectionConfiguration _configuration;
 
   /**
    * Create a collection of a given entity and managed by a given manager instance.
@@ -79,7 +86,7 @@ public class JPAEntityCollection<Entity>
   {
     _entityManager = entityManager;
     _contentType = entity;
-    _configuration = new JPAEntityCollectionConfiguration();
+    _configuration = new CollectionConfiguration();
   }
 
   /**
@@ -103,8 +110,7 @@ public class JPAEntityCollection<Entity>
    * @param configuration New Configuration to apply.
    */
   private JPAEntityCollection (
-    @NonNull final JPAEntityCollection<Entity> collection,
-    @NonNull final JPAEntityCollectionConfiguration configuration
+    @NonNull final JPAEntityCollection<Entity> collection, @NonNull final CollectionConfiguration configuration
   )
   {
     _entityManager = collection.getEntityManager();
@@ -137,7 +143,7 @@ public class JPAEntityCollection<Entity>
 
       for (int index = 0; index < orderingCount; ++index) {
         @NonNull final Order order = _configuration.getOrdering(index);
-        query.append(order.getField().replaceAll(":this", entityName));
+        query.append(order.getExpression().replaceAll(":this", entityName));
         query.append(" ");
         switch (order.getDirection()) {
           case ASCENDING: query.append("ASC"); break;
@@ -153,6 +159,78 @@ public class JPAEntityCollection<Entity>
     }
 
     return Optional.empty();
+  }
+
+  /**
+   * Compile and return this collection join clause.
+   *
+   * @return This collection join clause.
+   */
+  private @NonNull Optional<CharSequence> getJoinClause () {
+    if (hasExplicitJoins()) {
+      @NonNull final StringBuilder           query = new StringBuilder();
+      @NonNull final Iterator<@NonNull Join> joins = _configuration.joins().iterator();
+
+      while (joins.hasNext()) {
+        @NonNull final Join join = joins.next();
+
+        if (join instanceof InnerJoin) {
+          query.append(getInnerJoinClause((InnerJoin) join));
+        }
+
+        if (joins.hasNext()) {
+          query.append(" ");
+        }
+      }
+
+      return Optional.of(query);
+    }
+
+    return Optional.empty();
+  }
+
+  private @NonNull CharSequence getInnerJoinClause (@NonNull final InnerJoin join) {
+    @NonNull final String        entityName = getEntityName();
+    @NonNull final StringBuilder clause     = new StringBuilder();
+
+    clause.append("INNER JOIN ");
+    clause.append(join.getRelatedClass().getName());
+    clause.append(" ");
+    clause.append(join.getName());
+
+    if (join.getFilters().size() > 0) {
+      clause.append(" ON ");
+
+      @NonNull final Iterator<@NonNull Filter> filters = join.filters().iterator();
+      @NonNegative int                         index   = 0;
+
+      while (filters.hasNext()) {
+        @NonNull final Filter filter = filters.next();
+
+        clause.append(filter.getExpression()
+                        .replaceAll(":super", entityName)
+                        .replaceAll(":this", join.getName())
+                        .replaceAll(":([a-zA-Z0-9_]+)", String.join("", ":filter", String.valueOf(index), "_$1")));
+
+        if (filters.hasNext()) {
+          clause.append(" AND ");
+        }
+
+        index += 1;
+      }
+    }
+
+    return clause;
+  }
+
+  private boolean hasExplicitJoins () {
+    for (@NonNull final Join join : joins()) {
+      if (!(join instanceof Embeddable)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -213,13 +291,21 @@ public class JPAEntityCollection<Entity>
   public @NonNull CharSequence getQuery (
     @NonNull final String selection
   ) {
-    @NonNull final StringBuilder query = new StringBuilder();
+    @NonNull final StringBuilder          query           = new StringBuilder();
     @NonNull final Optional<CharSequence> filteringClause = getFilteringClause();
-    @NonNull final Optional<CharSequence> orderingClause = getOrderingClause();
+    @NonNull final Optional<CharSequence> orderingClause  = getOrderingClause();
+    @NonNull final Optional<CharSequence> joinClause      = getJoinClause();
+
     query.append("SELECT ");
     query.append(selection.replaceAll(":this", getEntityName()));
+
     query.append(" FROM ");
     query.append(getFromClause());
+
+    if (joinClause.isPresent()) {
+      query.append(" ");
+      query.append(joinClause);
+    }
 
     if (filteringClause.isPresent()) {
       query.append(" WHERE ");
@@ -337,23 +423,29 @@ public class JPAEntityCollection<Entity>
    * @see CursorableCollection#setCursor(Cursor)
    */
   public @NonNull JPAEntityCollection<Entity> setCursor (@NonNull final Cursor cursor) {
-    return new JPAEntityCollection<>(this, _configuration.setCursor(cursor));
+    return new JPAEntityCollection<>(this,
+      CollectionConfigurationBuilder.from(_configuration).setCursor(cursor).build()
+    );
   }
 
   /**
    * @see OrderableCollection#orderBy(Order)
+   * @param order
    */
   @Override
-  public @NonNull JPAEntityCollection<Entity> orderBy (@NonNull final Order order) {
-    return new JPAEntityCollection<>(this, _configuration.orderBy(order));
+  public JPAEntityCollection<Entity> orderBy (final Order order) {
+    return new JPAEntityCollection<>(this, CollectionConfigurationBuilder.from(_configuration).orderBy(order).build());
   }
 
   /**
    * @see OrderableCollection#removeOrder(Order)
+   * @param order
    */
   @Override
-  public @NonNull JPAEntityCollection<Entity> removeOrder (@NonNull final Order order) {
-    return new JPAEntityCollection<>(this, _configuration.removeOrder(order));
+  public JPAEntityCollection<Entity> removeOrder (final Order order) {
+    return new JPAEntityCollection<>(this,
+      CollectionConfigurationBuilder.from(_configuration).removeOrder(order).build()
+    );
   }
 
   /**
@@ -393,7 +485,9 @@ public class JPAEntityCollection<Entity>
    */
   @Override
   public @NonNull JPAEntityCollection<Entity> addFilter (@NonNull final Filter filter) {
-    return new JPAEntityCollection<>(this, _configuration.addFilter(filter));
+    return new JPAEntityCollection<>(this,
+      CollectionConfigurationBuilder.from(_configuration).addFilter(filter).build()
+    );
   }
 
   /**
@@ -401,7 +495,9 @@ public class JPAEntityCollection<Entity>
    */
   @Override
   public @NonNull JPAEntityCollection<Entity> removeFilter (@NonNull final Filter filter) {
-    return new JPAEntityCollection<>(this, _configuration.removeFilter(filter));
+    return new JPAEntityCollection<>(this,
+      CollectionConfigurationBuilder.from(_configuration).removeFilter(filter).build()
+    );
   }
 
   /**
@@ -464,13 +560,51 @@ public class JPAEntityCollection<Entity>
     return Collections.emptyList();
   }
 
-  private @NonNull JPAEntityCollectionConfiguration getConfiguration () {
+  @Override
+  public @NonNull JPAEntityCollection<Entity> join (@NonNull final Join<?> relation) {
+    if (!Objects.equals(_configuration.getJoins().computeIfAbsent(relation.getName(), x -> null), relation)) {
+      return new JPAEntityCollection<>(this,
+        CollectionConfigurationBuilder.from(_configuration).join(relation).build()
+      );
+    } else {
+      return this;
+    }
+  }
+
+  @Override
+  public @NonNull JPAEntityCollection<Entity> disjoin (@NonNull final Join<?> relation) {
+    return getJoins().get(relation.getName()).equals(relation) ? new JPAEntityCollection<>(this,
+      CollectionConfigurationBuilder.from(_configuration).disjoin(relation).build()
+    ) : this;
+  }
+
+  @Override
+  public @NonNull JPAEntityCollection<Entity> disjoin (@NonNull final String name) {
+    return new JPAEntityCollection<>(this, CollectionConfigurationBuilder.from(_configuration).disjoin(name).build());
+  }
+
+  @Override
+  public @NonNegative int getJoinCount () {
+    return _configuration.getJoins().size();
+  }
+
+  @Override
+  public @NonNull Map<@NonNull String, @NonNull Join> getJoins () {
+    return _configuration.getJoins();
+  }
+
+  @Override
+  public @NonNull Iterable<@NonNull Join> joins () {
+    return _configuration.joins();
+  }
+
+  private @NonNull CollectionConfiguration getConfiguration () {
     return _configuration;
   }
 
   @Override
   public @NonNull JPAEntityCollection<Entity> clear () {
-    return new JPAEntityCollection<>(this, new JPAEntityCollectionConfiguration());
+    return new JPAEntityCollection<>(this, new CollectionConfiguration());
   }
 
   @Override

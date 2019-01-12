@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -160,6 +160,11 @@ public final class Composition
     return result;
   }
 
+  @Override
+  public @NonNull Operator join (@NonNull final Join join) {
+    return new Composition(Arrays.stream(_operators).map(join::apply).iterator());
+  }
+
   /**
    * Return an operator of this composition.
    *
@@ -242,16 +247,5 @@ public final class Composition
     }
 
     return false;
-  }
-
-  @Override
-  public @NonNull Operator join (@NonNull final Join join) {
-    @NonNull final Operator[] joined = new Operator[_operators.length];
-
-    for (int index = 0; index < _operators.length; ++index) {
-      joined[index] = join.apply(_operators[index]);
-    }
-
-    return new Composition(joined);
   }
 }

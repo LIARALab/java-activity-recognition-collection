@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@ package org.liara.collection.operator.filtering;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.liara.collection.operator.Operator;
 import org.liara.collection.operator.joining.Join;
 import org.liara.collection.operator.joining.JoinableOperator;
 
@@ -114,8 +113,8 @@ public class ExpressionFilter
   }
 
   @Override
-  public @NonNull Operator join (@NonNull final Join join) {
-    return setExpression(_expression.replace(":this", ":this." + join.getField()));
+  public @NonNull Filter join (@NonNull final Join join) {
+    return new JoinFilter(join, this);
   }
 
   /**
