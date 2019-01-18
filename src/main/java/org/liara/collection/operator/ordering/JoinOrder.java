@@ -25,13 +25,16 @@ package org.liara.collection.operator.ordering;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
+import org.liara.collection.operator.Operator;
 import org.liara.collection.operator.joining.Join;
 import org.liara.collection.operator.joining.JoinableCollection;
+import org.liara.collection.operator.joining.JoinableOperator;
 
 import java.util.Objects;
 
 public class JoinOrder
-  implements Order
+  implements Order,
+             JoinableOperator
 {
   @NonNull
   private final Join _join;
@@ -47,6 +50,11 @@ public class JoinOrder
   public JoinOrder (@NonNull final JoinOrder toCopy) {
     _join = toCopy.getJoin();
     _order = toCopy.getOrder();
+  }
+
+  @Override
+  public @NonNull Operator join (@NonNull final Join join) {
+    return new JoinOrder((Join) join.apply(_join), _order);
   }
 
   @Override

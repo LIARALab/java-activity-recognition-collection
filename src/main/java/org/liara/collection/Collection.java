@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,7 @@
  */
 package org.liara.collection;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.operator.Operator;
 
 /**
@@ -34,11 +35,11 @@ public interface Collection {
    *
    * @return The result of this operation over this collection.
    */
-  default Collection apply (final Operator operator) {
+  default @NonNull Collection apply (@NonNull final Operator operator) {
     return operator.apply(this);
   }
 
-  Collection clear ();
+  @NonNull Collection clear ();
 
-  Operator getOperator ();
+  @NonNull Operator getOperator ();
 }

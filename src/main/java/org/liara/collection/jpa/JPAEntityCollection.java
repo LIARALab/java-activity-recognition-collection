@@ -38,7 +38,6 @@ import org.liara.collection.operator.filtering.FilterableCollection;
 import org.liara.collection.operator.grouping.Group;
 import org.liara.collection.operator.grouping.GroupableCollection;
 import org.liara.collection.operator.joining.Embeddable;
-import org.liara.collection.operator.joining.InnerJoin;
 import org.liara.collection.operator.joining.Join;
 import org.liara.collection.operator.joining.JoinableCollection;
 import org.liara.collection.operator.ordering.Order;
@@ -73,6 +72,9 @@ public class JPAEntityCollection<Entity>
   @NonNull
   private final CollectionConfiguration _configuration;
 
+  @NonNull
+  private final JPAJoinClauseBuilder _jpaJoinClauseBuilder;
+
   /**
    * Create a collection of a given entity and managed by a given manager instance.
    *
@@ -87,6 +89,7 @@ public class JPAEntityCollection<Entity>
     _entityManager = entityManager;
     _contentType = entity;
     _configuration = new CollectionConfiguration();
+    _jpaJoinClauseBuilder = new JPAJoinClauseBuilder();
   }
 
   /**
@@ -101,6 +104,7 @@ public class JPAEntityCollection<Entity>
     _entityManager = collection.getEntityManager();
     _contentType = collection.getEntityType();
     _configuration = collection.getConfiguration();
+    _jpaJoinClauseBuilder = new JPAJoinClauseBuilder();
   }
 
   /**
@@ -116,6 +120,7 @@ public class JPAEntityCollection<Entity>
     _entityManager = collection.getEntityManager();
     _contentType = collection.getEntityType();
     _configuration = configuration;
+    _jpaJoinClauseBuilder = new JPAJoinClauseBuilder();
   }
 
   /**
@@ -168,59 +173,13 @@ public class JPAEntityCollection<Entity>
    */
   private @NonNull Optional<CharSequence> getJoinClause () {
     if (hasExplicitJoins()) {
-      @NonNull final StringBuilder           query = new StringBuilder();
-      @NonNull final Iterator<@NonNull Join> joins = _configuration.joins().iterator();
-
-      while (joins.hasNext()) {
-        @NonNull final Join join = joins.next();
-
-        if (join instanceof InnerJoin) {
-          query.append(getInnerJoinClause((InnerJoin) join));
-        }
-
-        if (joins.hasNext()) {
-          query.append(" ");
-        }
-      }
-
-      return Optional.of(query);
+      _jpaJoinClauseBuilder.setJoins(_configuration.getJoins());
+      return Optional.of(_jpaJoinClauseBuilder.build()
+                           .toString()
+                           .replaceAll(":super", getEntityName()));
     }
 
     return Optional.empty();
-  }
-
-  private @NonNull CharSequence getInnerJoinClause (@NonNull final InnerJoin join) {
-    @NonNull final String        entityName = getEntityName();
-    @NonNull final StringBuilder clause     = new StringBuilder();
-
-    clause.append("INNER JOIN ");
-    clause.append(join.getRelatedClass().getName());
-    clause.append(" ");
-    clause.append(join.getName());
-
-    if (join.getFilters().size() > 0) {
-      clause.append(" ON ");
-
-      @NonNull final Iterator<@NonNull Filter> filters = join.filters().iterator();
-      @NonNegative int                         index   = 0;
-
-      while (filters.hasNext()) {
-        @NonNull final Filter filter = filters.next();
-
-        clause.append(filter.getExpression()
-                        .replaceAll(":super", entityName)
-                        .replaceAll(":this", join.getName())
-                        .replaceAll(":([a-zA-Z0-9_]+)", String.join("", ":filter", String.valueOf(index), "_$1")));
-
-        if (filters.hasNext()) {
-          clause.append(" AND ");
-        }
-
-        index += 1;
-      }
-    }
-
-    return clause;
   }
 
   private boolean hasExplicitJoins () {
@@ -562,7 +521,9 @@ public class JPAEntityCollection<Entity>
 
   @Override
   public @NonNull JPAEntityCollection<Entity> join (@NonNull final Join<?> relation) {
-    if (!Objects.equals(_configuration.getJoins().computeIfAbsent(relation.getName(), x -> null), relation)) {
+    if (!_configuration.getJoins()
+           .containsKey(relation.getName()) || !Objects.equals(_configuration.getJoins()
+                                                                 .get(relation.getName()), relation)) {
       return new JPAEntityCollection<>(this,
         CollectionConfigurationBuilder.from(_configuration).join(relation).build()
       );

@@ -25,14 +25,17 @@ package org.liara.collection.operator.filtering;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
+import org.liara.collection.operator.Operator;
 import org.liara.collection.operator.joining.Join;
 import org.liara.collection.operator.joining.JoinableCollection;
+import org.liara.collection.operator.joining.JoinableOperator;
 
 import java.util.Map;
 import java.util.Objects;
 
 public class JoinFilter
-  implements Filter
+  implements Filter,
+             JoinableOperator
 {
   @NonNull
   private final Join _join;
@@ -84,6 +87,11 @@ public class JoinFilter
   @Override
   public @NonNull JoinFilter setParameters (@NonNull final Map<@NonNull String, @NonNull Object> parameters) {
     return new JoinFilter(_join, _filter.setParameters(parameters));
+  }
+
+  @Override
+  public @NonNull Operator join (@NonNull final Join join) {
+    return new JoinFilter((Join) join.apply(_join), _filter);
   }
 
   public @NonNull Join getJoin () {

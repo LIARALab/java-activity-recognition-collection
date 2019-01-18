@@ -27,7 +27,8 @@ import org.liara.collection.Collection;
 import org.liara.collection.operator.Operator;
 
 public interface Join<Related>
-  extends Operator
+  extends Operator,
+          JoinableOperator
 {
   static <T> InnerJoin<T> inner (@NonNull final Class<T> relatedClass, @NonNull final String name) {
     return new InnerJoin<>(relatedClass, name);
@@ -54,6 +55,11 @@ public interface Join<Related>
   @NonNull Class<Related> getRelatedClass ();
 
   @Override
+  default @NonNull Join<Related> join (@NonNull final Join join) {
+    return new DeepJoin<>(join, this);
+  }
+
+  @Override
   default @NonNull Collection apply (final @NonNull Collection input) {
     if (input instanceof JoinableCollection) {
       return ((JoinableCollection) input).join(this);
@@ -67,7 +73,7 @@ public interface Join<Related>
     if (child instanceof JoinableOperator) {
       return ((JoinableOperator) child).join(this);
     } else {
-      return Operator.super.apply(child);
+      return JoinableOperator.super.apply(child);
     }
   }
 }
