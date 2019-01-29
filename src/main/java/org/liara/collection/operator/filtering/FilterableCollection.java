@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,25 +22,21 @@
 
 package org.liara.collection.operator.filtering;
 
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.Collection;
 
 import java.util.Set;
 
-public interface FilterableCollection extends Collection
+public interface FilterableCollection<Model>
+  extends Collection<Model>
 {
-  @NonNull FilterableCollection addFilter (@NonNull final Filter filter);
+  @NonNull FilterableCollection<Model> addFilter (@NonNull final Filter filter);
 
-  @NonNull FilterableCollection removeFilter (@NonNull final Filter filter);
-
-  @NonNegative int getFilterCount ();
+  @NonNull FilterableCollection<Model> removeFilter (@NonNull final Filter filter);
 
   @NonNull Set<@NonNull Filter> getFilters ();
 
-  @NonNull Iterable<@NonNull Filter> filters ();
-
   default boolean isFiltered () {
-    return getFilterCount() > 0;
+    return !getFilters().isEmpty();
   }
 }

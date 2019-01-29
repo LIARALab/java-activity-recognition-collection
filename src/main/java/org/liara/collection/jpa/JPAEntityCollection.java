@@ -22,7 +22,6 @@
 package org.liara.collection.jpa;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.checkerframework.checker.index.qual.LessThan;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -56,18 +55,22 @@ import java.util.*;
  */
 @JsonSerialize(using = JPAEntityCollectionSerializer.class)
 public class JPAEntityCollection<Entity>
-       implements Collection,
-                  CursorableCollection,
-                  OrderableCollection,
-                  FilterableCollection,
-                  GroupableCollection,
-                  JoinableCollection
+  implements Collection<Entity>,
+             CursorableCollection<Entity>,
+             OrderableCollection<Entity>,
+             FilterableCollection<Entity>,
+             GroupableCollection<Entity>,
+             JoinableCollection<Entity>
 {
+  @NonNull
+  private static final List<@NonNull Group> EMPTY_GROUP_LIST = Collections.unmodifiableList(
+    Collections.emptyList());
+
   @NonNull
   private final EntityManager _entityManager;
 
   @NonNull
-  private final Class<Entity> _contentType;
+  private final Class<Entity> _modelClass;
 
   @NonNull
   private final CollectionConfiguration _configuration;
@@ -87,7 +90,7 @@ public class JPAEntityCollection<Entity>
   )
   {
     _entityManager = entityManager;
-    _contentType = entity;
+    _modelClass = entity;
     _configuration = new CollectionConfiguration();
     _jpaJoinClauseBuilder = new JPAJoinClauseBuilder();
   }
@@ -102,7 +105,7 @@ public class JPAEntityCollection<Entity>
   )
   {
     _entityManager = collection.getEntityManager();
-    _contentType = collection.getEntityType();
+    _modelClass = collection.getModelClass();
     _configuration = collection.getConfiguration();
     _jpaJoinClauseBuilder = new JPAJoinClauseBuilder();
   }
@@ -118,7 +121,7 @@ public class JPAEntityCollection<Entity>
   )
   {
     _entityManager = collection.getEntityManager();
-    _contentType = collection.getEntityType();
+    _modelClass = collection.getModelClass();
     _configuration = configuration;
     _jpaJoinClauseBuilder = new JPAJoinClauseBuilder();
   }
@@ -129,7 +132,7 @@ public class JPAEntityCollection<Entity>
    * @return The name used to identify the entity of this query.
    */
   public @NonNull String getEntityName () {
-    @NonNull final String typeName = _contentType.getSimpleName();
+    @NonNull final String typeName = _modelClass.getSimpleName();
     return Character.toLowerCase(typeName.charAt(0)) + typeName.substring(1);
   }
 
@@ -142,12 +145,12 @@ public class JPAEntityCollection<Entity>
    */
   public @NonNull Optional<CharSequence> getOrderingClause () {
     if (isOrdered()) {
-      @NonNull final String entityName = getEntityName();
-      @NonNull final StringBuilder query = new StringBuilder();
-      @NonNegative final int orderingCount = _configuration.getOrderingCount();
+      @NonNull final String        entityName    = getEntityName();
+      @NonNull final StringBuilder query         = new StringBuilder();
+      @NonNegative final int       orderingCount = _configuration.getOrderings().size();
 
       for (int index = 0; index < orderingCount; ++index) {
-        @NonNull final Order order = _configuration.getOrdering(index);
+        @NonNull final Order order = _configuration.getOrderings().get(index);
         query.append(order.getExpression().replaceAll(":this", entityName));
         query.append(" ");
         switch (order.getDirection()) {
@@ -183,7 +186,7 @@ public class JPAEntityCollection<Entity>
   }
 
   private boolean hasExplicitJoins () {
-    for (@NonNull final Join join : joins()) {
+    for (@NonNull final Join join : getJoins().values()) {
       if (!(join instanceof Embeddable)) {
         return true;
       }
@@ -237,7 +240,7 @@ public class JPAEntityCollection<Entity>
    * @return This collection from clause.
    */
   public @NonNull CharSequence getFromClause () {
-    return _contentType.getName() + " " + getEntityName();
+    return _modelClass.getName() + " " + getEntityName();
   }
 
   /**
@@ -341,7 +344,8 @@ public class JPAEntityCollection<Entity>
    *
    * @return The number of elements selected by this collection.
    */
-  public @NonNegative long findSize () {
+  @Override
+  public @NonNegative @NonNull Long count () {
     return select("COUNT(:this)", Long.class).getSingleResult();
   }
 
@@ -350,8 +354,9 @@ public class JPAEntityCollection<Entity>
    *
    * @return All the elements selected by this collection.
    */
-  public @NonNull List<@NonNull Entity> find () {
-    return select(":this", _contentType).getResultList();
+  @Override
+  public @NonNull List<@NonNull Entity> fetch () {
+    return select(":this", _modelClass).getResultList();
   }
 
   /**
@@ -359,8 +364,9 @@ public class JPAEntityCollection<Entity>
    *
    * @return The type of entity stored into this collection.
    */
-  public @NonNull Class<Entity> getEntityType () {
-    return _contentType;
+  @Override
+  public @NonNull Class<Entity> getModelClass () {
+    return _modelClass;
   }
 
   /**
@@ -408,35 +414,11 @@ public class JPAEntityCollection<Entity>
   }
 
   /**
-   * @see OrderableCollection#getOrdering(int)
-   */
-  @Override
-  public @NonNull Order getOrdering (@NonNegative @LessThan("this.getOrderingCount()") int index) {
-    return _configuration.getOrdering(index);
-  }
-
-  /**
-   * @see OrderableCollection#getOrderingCount()
-   */
-  @Override
-  public @NonNegative int getOrderingCount () {
-    return _configuration.getOrderingCount();
-  }
-
-  /**
    * @see OrderableCollection#getOrderings()
    */
   @Override
   public @NonNull List<@NonNull Order> getOrderings () {
     return _configuration.getOrderings();
-  }
-
-  /**
-   * @see OrderableCollection#orderings()
-   */
-  @Override
-  public @NonNull Iterable<@NonNull Order> orderings () {
-    return _configuration.orderings();
   }
 
   /**
@@ -460,27 +442,11 @@ public class JPAEntityCollection<Entity>
   }
 
   /**
-   * @see FilterableCollection#getFilterCount()
-   */
-  @Override
-  public @NonNegative int getFilterCount () {
-    return _configuration.getFilterCount();
-  }
-
-  /**
    * @see FilterableCollection#getFilters()
    */
   @Override
   public @NonNull Set<@NonNull Filter> getFilters () {
     return _configuration.getFilters();
-  }
-
-  /**
-   * @see FilterableCollection#filters()
-   */
-  @Override
-  public @NonNull Iterable<@NonNull Filter> filters () {
-    return _configuration.filters();
   }
 
   /**
@@ -496,27 +462,9 @@ public class JPAEntityCollection<Entity>
     return this;
   }
 
-  /**
-   * @see GroupableCollection#getGroup(int)
-   */
-  @Override
-  public @NonNull Group getGroup (@NonNegative @LessThan("this.getGroupCount()") int index) {
-    throw new IndexOutOfBoundsException("Index out of bounds " + index + ".");
-  }
-
-  @Override
-  public @NonNegative int getGroupCount () {
-    return 0;
-  }
-
   @Override
   public @NonNull List<@NonNull Group> getGroups () {
-    return Collections.emptyList();
-  }
-
-  @Override
-  public @NonNull Iterable<@NonNull Group> groups () {
-    return Collections.emptyList();
+    return EMPTY_GROUP_LIST;
   }
 
   @Override
@@ -545,18 +493,8 @@ public class JPAEntityCollection<Entity>
   }
 
   @Override
-  public @NonNegative int getJoinCount () {
-    return _configuration.getJoins().size();
-  }
-
-  @Override
   public @NonNull Map<@NonNull String, @NonNull Join> getJoins () {
     return _configuration.getJoins();
-  }
-
-  @Override
-  public @NonNull Iterable<@NonNull Join> joins () {
-    return _configuration.joins();
   }
 
   private @NonNull CollectionConfiguration getConfiguration () {
@@ -564,8 +502,13 @@ public class JPAEntityCollection<Entity>
   }
 
   @Override
-  public @NonNull JPAEntityCollection<Entity> clear () {
-    return new JPAEntityCollection<>(this, new CollectionConfiguration());
+  public @NonNull Collection<?> setOperator (@Nullable final Operator operator) {
+    if (operator == null) {
+      return new JPAEntityCollection<>(this, new CollectionConfiguration());
+    } else {
+      return operator.apply(new JPAEntityCollection<>(this, new CollectionConfiguration()));
+    }
+
   }
 
   @Override
@@ -579,7 +522,7 @@ public class JPAEntityCollection<Entity>
 
   @Override
   public int hashCode () {
-    return Objects.hash(_contentType, _configuration);
+    return Objects.hash(_modelClass, _configuration);
   }
 
   @Override
@@ -590,7 +533,7 @@ public class JPAEntityCollection<Entity>
     if (other instanceof JPAEntityCollection) {
       @NonNull final JPAEntityCollection otherCollection = (JPAEntityCollection) other;
 
-      return Objects.equals(_contentType, otherCollection.getEntityType()) &&
+      return Objects.equals(_modelClass, otherCollection.getModelClass()) &&
              Objects.equals(_configuration, otherCollection.getConfiguration());
     }
 

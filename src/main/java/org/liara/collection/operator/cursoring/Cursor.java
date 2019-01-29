@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -174,9 +174,12 @@ public class Cursor implements Operator
   /**
    * @see Operator#apply(Operator)
    */
-  public @NonNull Collection apply (@NonNull final Collection collection) {
-    return (collection instanceof CursorableCollection) ? ((CursorableCollection) collection).setCursor(this)
-                                                        : collection;
+  public <Model> @NonNull Collection<Model> apply (@NonNull final Collection<Model> collection) {
+    if (collection instanceof CursorableCollection) {
+      return ((CursorableCollection<Model>) collection).setCursor(this);
+    }
+
+    return collection;
   }
 
   /**

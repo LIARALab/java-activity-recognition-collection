@@ -22,8 +22,6 @@
 
 package org.liara.collection.jpa;
 
-import org.checkerframework.checker.index.qual.LessThan;
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.com.google.common.collect.Iterables;
@@ -50,18 +48,21 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class      GroupedJPAEntityCollection<Entity>
-       implements Collection,
-                  CursorableCollection,
-                  OrderableCollection,
-                  FilterableCollection,
-                  GroupableCollection,
-                  JoinableCollection
+  implements Collection<Entity>,
+             CursorableCollection<Entity>,
+             OrderableCollection<Entity>,
+             FilterableCollection<Entity>,
+             GroupableCollection<Entity>,
+             JoinableCollection<Entity>
 {
   @NonNull
   private final JPAEntityCollection<Entity> _groupedCollection;
 
   @NonNull
   private final List<@NonNull Group> _groups;
+
+  @NonNull
+  private final List<@NonNull Group> _unmodifiableGroups;
 
   /**
    * Create a new grouped collection from an existing entity collection and a list of groups.
@@ -78,6 +79,7 @@ public class      GroupedJPAEntityCollection<Entity>
     @NonNull final LinkedList<@NonNull Group> groupList = new LinkedList<>();
     groups.forEach(groupList::addLast);
     _groups = new ArrayList<>(groupList);
+    _unmodifiableGroups = Collections.unmodifiableList(_groups);
   }
 
   /**
@@ -90,6 +92,7 @@ public class      GroupedJPAEntityCollection<Entity>
   ) {
     _groupedCollection = toCopy.getGroupedCollection();
     _groups = new ArrayList<>(toCopy.getGroups());
+    _unmodifiableGroups = Collections.unmodifiableList(_groups);
   }
 
   private GroupedJPAEntityCollection (
@@ -98,6 +101,7 @@ public class      GroupedJPAEntityCollection<Entity>
   ) {
     _groupedCollection = groupedCollection;
     _groups = new ArrayList<>(toCopy.getGroups());
+    _unmodifiableGroups = Collections.unmodifiableList(_groups);
   }
 
   /**
@@ -116,6 +120,16 @@ public class      GroupedJPAEntityCollection<Entity>
     }
 
     return result;
+  }
+
+  @Override
+  public @NonNull Long count () {
+    return null;
+  }
+
+  @Override
+  public @NonNull List<Entity> fetch () {
+    return aggregate("COUNT(:this)").getResultList();
   }
 
   /**
@@ -188,16 +202,17 @@ public class      GroupedJPAEntityCollection<Entity>
     @NonNull final Matcher       matcher = pattern.matcher(selection);
     @NonNull final StringBuilder groups = new StringBuilder();
 
-    for (int index = 0; index < getGroupCount(); ++index) {
+    for (int index = 0; index < getGroups().size(); ++index) {
       if (index > 0) {
         groups.append(", ");
       }
-      groups.append(getGroup(index).getExpression());
+      groups.append(getGroups().get(index).getExpression());
     }
 
     return matcher.replaceAll(
       match -> (match.group(2) == null) ? groups.toString()
-                                        : getGroup(Integer.parseInt(match.group(2))).getExpression()
+                                        : getGroups().get(Integer.parseInt(match.group(2)))
+                                            .getExpression()
     );
   }
 
@@ -217,9 +232,10 @@ public class      GroupedJPAEntityCollection<Entity>
   public @NonNull String getEntityName () {return _groupedCollection.getEntityName();}
 
   /**
-   * @see JPAEntityCollection#getEntityType()
+   * @see JPAEntityCollection#getModelClass()
    */
-  public @NonNull Class<Entity> getEntityType () {return _groupedCollection.getEntityType();}
+  @Override
+  public @NonNull Class<Entity> getModelClass () {return _groupedCollection.getModelClass();}
 
   /**
    * @see JPAEntityCollection#getOrderingClause()
@@ -289,27 +305,11 @@ public class      GroupedJPAEntityCollection<Entity>
   }
 
   /**
-   * @see FilterableCollection#getFilterCount()
-   */
-  @Override
-  public @NonNegative int getFilterCount () {
-    return _groupedCollection.getFilterCount();
-  }
-
-  /**
    * @see FilterableCollection#getFilters()
    */
   @Override
   public @NonNull Set<@NonNull Filter> getFilters () {
     return _groupedCollection.getFilters();
-  }
-
-  /**
-   * @see FilterableCollection#filters()
-   */
-  @Override
-  public @NonNull Iterable<@NonNull Filter> filters () {
-    return _groupedCollection.filters();
   }
 
   /**
@@ -324,7 +324,7 @@ public class      GroupedJPAEntityCollection<Entity>
   }
 
   @Override
-  public @NonNull GroupableCollection ungroup (@NonNull final Group group) {
+  public @NonNull GroupableCollection<Entity> ungroup (@NonNull final Group group) {
     @NonNull final List<Group> groups = new ArrayList<>(_groups);
     groups.remove(group);
 
@@ -332,35 +332,11 @@ public class      GroupedJPAEntityCollection<Entity>
   }
 
   /**
-   * @see GroupableCollection#getGroup(int)
-   */
-  @Override
-  public @NonNull Group getGroup (@NonNegative @LessThan("this.getGroupCount()") final int index) {
-    return _groups.get(index);
-  }
-
-  /**
-   * @see GroupableCollection#getGroupCount()
-   */
-  @Override
-  public @NonNegative int getGroupCount () {
-    return _groups.size();
-  }
-
-  /**
    * @see GroupableCollection#getGroups()
    */
   @Override
   public @NonNull List<@NonNull Group> getGroups () {
-    return Collections.unmodifiableList(_groups);
-  }
-
-  /**
-   * @see GroupableCollection#groups()
-   */
-  @Override
-  public @NonNull Iterable<@NonNull Group> groups () {
-    return Collections.unmodifiableList(_groups);
+    return _unmodifiableGroups;
   }
 
   /**
@@ -368,29 +344,13 @@ public class      GroupedJPAEntityCollection<Entity>
    * @param order
    */
   @Override
-  public GroupedJPAEntityCollection<Entity> orderBy (final Order order) {
+  public @NonNull GroupedJPAEntityCollection<Entity> orderBy (@NonNull final Order order) {
     return new GroupedJPAEntityCollection<>(this, _groupedCollection.orderBy(order));
   }
 
   @Override
-  public GroupedJPAEntityCollection<Entity> removeOrder (final Order order) {
+  public @NonNull GroupedJPAEntityCollection<Entity> removeOrder (@NonNull final Order order) {
     return new GroupedJPAEntityCollection<>(this, _groupedCollection.removeOrder(order));
-  }
-
-  /**
-   * @see OrderableCollection#getOrdering(int)
-   */
-  @Override
-  public @NonNull Order getOrdering (@NonNegative @LessThan("this.getOrderingCount()") int index) {
-    return _groupedCollection.getOrdering(index);
-  }
-
-  /**
-   * @see OrderableCollection#getOrderingCount()
-   */
-  @Override
-  public @NonNegative int getOrderingCount () {
-    return _groupedCollection.getOrderingCount();
   }
 
   /**
@@ -399,14 +359,6 @@ public class      GroupedJPAEntityCollection<Entity>
   @Override
   public @NonNull List<@NonNull Order> getOrderings () {
     return _groupedCollection.getOrderings();
-  }
-
-  /**
-   * @see OrderableCollection#orderings()
-   */
-  @Override
-  public @NonNull Iterable<@NonNull Order> orderings () {
-    return _groupedCollection.orderings();
   }
 
   @Override
@@ -425,23 +377,13 @@ public class      GroupedJPAEntityCollection<Entity>
   }
 
   @Override
-  public @NonNegative int getJoinCount () {
-    return _groupedCollection.getJoinCount();
-  }
-
-  @Override
   public @NonNull Map<@NonNull String, @NonNull Join> getJoins () {
     return _groupedCollection.getJoins();
   }
 
   @Override
-  public @NonNull Iterable<@NonNull Join> joins () {
-    return _groupedCollection.joins();
-  }
-
-  @Override
-  public JPAEntityCollection<Entity> clear () {
-    return _groupedCollection.clear();
+  public @NonNull Collection<?> setOperator (@NonNull final Operator operator) {
+    return _groupedCollection.setOperator(operator);
   }
 
   @Override

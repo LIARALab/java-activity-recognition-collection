@@ -22,28 +22,23 @@
 
 package org.liara.collection.operator.joining;
 
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.Collection;
 
 import java.util.Map;
 
-public interface JoinableCollection
-  extends Collection
+public interface JoinableCollection<Model>
+  extends Collection<Model>
 {
-  @NonNull JoinableCollection join (@NonNull final Join<?> relation);
+  @NonNull JoinableCollection<Model> join (@NonNull final Join<?> relation);
 
-  @NonNull JoinableCollection disjoin (@NonNull final Join<?> relation);
+  @NonNull JoinableCollection<Model> disjoin (@NonNull final Join<?> relation);
 
-  @NonNull JoinableCollection disjoin (@NonNull final String name);
-
-  @NonNegative int getJoinCount ();
+  @NonNull JoinableCollection<Model> disjoin (@NonNull final String name);
 
   @NonNull Map<@NonNull String, @NonNull Join> getJoins ();
 
-  @NonNull Iterable<@NonNull Join> joins ();
-
   default boolean hasJoins () {
-    return getJoinCount() > 0;
+    return !getJoins().isEmpty();
   }
 }

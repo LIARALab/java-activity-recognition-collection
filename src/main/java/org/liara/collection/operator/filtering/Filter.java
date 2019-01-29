@@ -47,9 +47,9 @@ public interface Filter
   }
 
   @Override
-  default @NonNull Collection apply (@NonNull final Collection input) {
+  default <Model> @NonNull Collection<Model> apply (@NonNull final Collection<Model> input) {
     if (input instanceof FilterableCollection) {
-      return ((FilterableCollection) input).addFilter(this);
+      return ((FilterableCollection<Model>) input).addFilter(this);
     }
 
     return input;

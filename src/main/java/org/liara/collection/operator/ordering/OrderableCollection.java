@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,6 @@
 
 package org.liara.collection.operator.ordering;
 
-import org.checkerframework.checker.index.qual.LessThan;
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.Collection;
 
@@ -32,7 +30,8 @@ import java.util.List;
 /**
  * An interface for collections that can be ordered.
  */
-public interface OrderableCollection extends Collection
+public interface OrderableCollection<Model>
+  extends Collection<Model>
 {
   /**
    * Create a new collection that is a copy of this collection ordered in accordance with a given ordering operator.
@@ -44,19 +43,13 @@ public interface OrderableCollection extends Collection
    *
    * @return A new ordered instance of this collection.
    */
-  @NonNull OrderableCollection orderBy (@NonNull final Order order);
+  @NonNull OrderableCollection<Model> orderBy (@NonNull final Order order);
 
-  @NonNull OrderableCollection removeOrder (@NonNull final Order order);
-
-  @NonNull Order getOrdering (@NonNegative @LessThan("this.getOrderingCount()") final int index);
-
-  @NonNegative int getOrderingCount ();
+  @NonNull OrderableCollection<Model> removeOrder (@NonNull final Order order);
 
   @NonNull List<@NonNull Order> getOrderings ();
 
-  @NonNull Iterable<@NonNull Order> orderings ();
-
   default boolean isOrdered () {
-    return getOrderingCount() > 0;
+    return !getOrderings().isEmpty();
   }
 }

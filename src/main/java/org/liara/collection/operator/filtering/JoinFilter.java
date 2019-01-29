@@ -49,9 +49,11 @@ public class JoinFilter
   }
 
   @Override
-  public @NonNull Collection apply (@NonNull final Collection input) {
+  public <Model> @NonNull Collection<Model> apply (@NonNull final Collection<Model> input) {
     if (input instanceof JoinableCollection) {
-      @NonNull final JoinableCollection collection = ((JoinableCollection) input).join(_join);
+      @NonNull final JoinableCollection<Model> collection =
+        ((JoinableCollection<Model>) input).join(
+        _join);
 
       if (collection instanceof FilterableCollection) {
         return ((FilterableCollection) collection).addFilter(this);

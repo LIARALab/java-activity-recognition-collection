@@ -22,8 +22,6 @@
 
 package org.liara.collection;
 
-import org.checkerframework.checker.index.qual.LessThan;
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.operator.cursoring.Cursor;
@@ -39,7 +37,13 @@ public class CollectionConfiguration
   private final List<@NonNull Order> _orderings;
 
   @NonNull
+  private final List<@NonNull Order> _unmodifiableOrderings;
+
+  @NonNull
   private final Set<@NonNull Filter> _filters;
+
+  @NonNull
+  private final Set<@NonNull Filter> _unmodificableFilters;
 
   @NonNull
   private final Cursor _cursor;
@@ -47,11 +51,18 @@ public class CollectionConfiguration
   @NonNull
   private final Map<@NonNull String, @NonNull Join> _joins;
 
+  @NonNull
+  private final Map<@NonNull String, @NonNull Join> _unmodifiableJoins;
+
   public CollectionConfiguration () {
     _orderings = new ArrayList<>();
     _filters = new HashSet<>();
     _joins = new HashMap<>();
     _cursor = Cursor.ALL;
+
+    _unmodificableFilters = Collections.unmodifiableSet(_filters);
+    _unmodifiableOrderings = Collections.unmodifiableList(_orderings);
+    _unmodifiableJoins = Collections.unmodifiableMap(_joins);
   }
 
   public CollectionConfiguration (@NonNull final CollectionConfigurationBuilder builder) {
@@ -59,6 +70,10 @@ public class CollectionConfiguration
     _filters = new HashSet<>(builder.getFilters());
     _joins = new HashMap<>(builder.getJoins());
     _cursor = builder.getCursor();
+
+    _unmodificableFilters = Collections.unmodifiableSet(_filters);
+    _unmodifiableOrderings = Collections.unmodifiableList(_orderings);
+    _unmodifiableJoins = Collections.unmodifiableMap(_joins);
   }
 
   public CollectionConfiguration (@NonNull final CollectionConfiguration toCopy) {
@@ -66,34 +81,18 @@ public class CollectionConfiguration
     _filters = toCopy.getFilters();
     _joins = toCopy.getJoins();
     _cursor = toCopy.getCursor();
+
+    _unmodificableFilters = Collections.unmodifiableSet(_filters);
+    _unmodifiableOrderings = Collections.unmodifiableList(_orderings);
+    _unmodifiableJoins = Collections.unmodifiableMap(_joins);
   }
 
   public @NonNull List<@NonNull Order> getOrderings () {
-    return Collections.unmodifiableList(_orderings);
-  }
-
-  public @NonNull Iterable<@NonNull Order> orderings () {
-    return Collections.unmodifiableList(_orderings);
-  }
-
-  public @NonNull Order getOrdering (@NonNegative @LessThan("this.getOrderCount()") final int index) {
-    return _orderings.get(index);
-  }
-
-  public @NonNegative int getOrderingCount () {
-    return _orderings.size();
+    return _unmodifiableOrderings;
   }
 
   public @NonNull Set<@NonNull Filter> getFilters () {
-    return Collections.unmodifiableSet(_filters);
-  }
-
-  public @NonNull Iterable<@NonNull Filter> filters () {
-    return Collections.unmodifiableSet(_filters);
-  }
-
-  public @NonNegative int getFilterCount () {
-    return _filters.size();
+    return _unmodificableFilters;
   }
 
   public @NonNull Cursor getCursor () {
@@ -101,11 +100,7 @@ public class CollectionConfiguration
   }
 
   public @NonNull Map<@NonNull String, @NonNull Join> getJoins () {
-    return Collections.unmodifiableMap(_joins);
-  }
-
-  public @NonNull Iterable<@NonNull Join> joins () {
-    return Collections.unmodifiableCollection(_joins.values());
+    return _unmodifiableJoins;
   }
 
   @Override
@@ -122,10 +117,9 @@ public class CollectionConfiguration
       @NonNull final CollectionConfiguration otherConfiguration = (CollectionConfiguration) other;
 
       return Objects.equals(_cursor, otherConfiguration.getCursor()) &&
-             Objects.equals(_filters, otherConfiguration.getFilters()) && Objects.equals(
-        _orderings,
-        otherConfiguration.getOrderings()
-      ) && Objects.equals(_joins, otherConfiguration.getJoins());
+             Objects.equals(_filters, otherConfiguration.getFilters()) &&
+             Objects.equals(_orderings, otherConfiguration.getOrderings()) &&
+             Objects.equals(_joins, otherConfiguration.getJoins());
     }
 
     return false;

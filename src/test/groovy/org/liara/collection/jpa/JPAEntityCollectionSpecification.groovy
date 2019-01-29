@@ -29,7 +29,7 @@ import org.liara.collection.operator.cursoring.Cursor
 import org.liara.collection.operator.filtering.Filter
 import org.liara.collection.operator.grouping.Group
 import org.liara.collection.operator.grouping.GroupableCollection
-import org.liara.collection.operator.ordering.ExpressionOrder
+import org.liara.collection.operator.ordering.Order
 import org.mockito.Mockito
 
 import javax.persistence.EntityManager
@@ -40,7 +40,7 @@ class JPAEntityCollectionSpecification extends Specification {
     final JPAEntityCollection<Entity> collection
   ) {
     final Map<Filter, Map<String, String>> result = [:]
-    final Iterator<Filter> collectionFilters = collection.filters().iterator()
+    final Iterator<Filter> collectionFilters = collection.filters.iterator()
     int index = 0
 
     while (collectionFilters.hasNext()) {
@@ -69,7 +69,7 @@ class JPAEntityCollectionSpecification extends Specification {
 
     then: "we expect to get a well-configured collection"
       collection.entityManager == manager
-      collection.entityType == Object.class
+    collection.modelClass == Object.class
       collection.cursor == Cursor.ALL
       !collection.ordered
       !collection.filtered
@@ -83,7 +83,7 @@ class JPAEntityCollectionSpecification extends Specification {
     final Operator operators = Composition.of(
       Cursor.ALL,
       Filter.expression(':this.first = :value').setParameter("value", 10),
-      ExpressionOrder.expression(':this.second').descending(),
+      Order.expression(':this.second').descending(),
       Filter.expression(':this.second > :value').setParameter('value', 65)
     )
 
@@ -118,26 +118,27 @@ class JPAEntityCollectionSpecification extends Specification {
       final JPAEntityCollection<Object> collection = new JPAEntityCollection<>(manager, Object.class)
 
     and: "a chain of ordering operators"
-    final ExpressionOrder[] orderings = [
-      ExpressionOrder.expression(":this.third").descending(),
-      ExpressionOrder.expression(":this.second").ascending(),
-      ExpressionOrder.expression(":this.first").descending()
-      ]
+    final Order[] orderings = [
+      Order.expression(":this.first").descending(),
+      Order.expression(":this.second").ascending(),
+      Order.expression(":this.third").descending()
+    ]
 
     when: "we order the collection"
-      final JPAEntityCollection<Object> orderedCollection = Composition.of(
-        orderings
-      ).apply(collection) as JPAEntityCollection<Object>
+    JPAEntityCollection<Object> orderedCollection = collection
+
+    for (final Order order in orderings) {
+      orderedCollection = orderedCollection.orderBy(order)
+    }
 
     then: "we expect to get a fully ordered copy of the original collection"
       orderedCollection.ordered
-      orderedCollection.orderingCount == 3
-      orderedCollection.getOrdering(0) == orderings[2]
-      orderedCollection.getOrdering(1) == orderings[1]
-      orderedCollection.getOrdering(2) == orderings[0]
+    orderedCollection.orderings.size() == 3
+    orderedCollection.orderings[0] == orderings[0]
+    orderedCollection.orderings[1] == orderings[1]
+    orderedCollection.orderings[2] == orderings[2]
       !orderedCollection.getOrderings().is(orderings)
       !orderedCollection.is(collection)
-      !collection.ordered
       !collection.ordered
   }
 
@@ -161,9 +162,9 @@ class JPAEntityCollectionSpecification extends Specification {
 
     and: "an ordered collection"
     final JPAEntityCollection<Object> collection = Composition.of(
-      ExpressionOrder.expression(":this.third").descending(),
-      ExpressionOrder.expression(":this.second").ascending(),
-      ExpressionOrder.expression(":this.first").descending()
+      Order.expression(":this.third").descending(),
+      Order.expression(":this.second").ascending(),
+      Order.expression(":this.first").descending()
     ).apply(new JPAEntityCollection<>(manager, Object.class)) as JPAEntityCollection<Object>
 
     when: "we get the ordering clause"
@@ -213,15 +214,15 @@ class JPAEntityCollectionSpecification extends Specification {
     ]
 
     when: "we add all filters to the collection"
-    final JPAEntityCollection<Object> result = Composition.of(filters).apply(collection) as JPAEntityCollection<Object>
+    JPAEntityCollection<Object> result = collection
+
+    for (final Filter filter : filters) {
+      result = result.addFilter(filter)
+    }
 
     then: "we expect that the collection was updated accordingly"
-    !collection.filtered
-    result.filtered
-    collection.filterCount == 0
-    result.filterCount == 3
-    collection.getFilters() == new HashSet<Filter>()
-    result.getFilters() == new HashSet<Filter>(Arrays.asList(filters))
+    collection.filters == new HashSet<Filter>()
+    result.filters == new HashSet<Filter>(Arrays.asList(filters))
     !result.is(collection)
   }
 
@@ -237,12 +238,14 @@ class JPAEntityCollectionSpecification extends Specification {
     ]
 
     and: "a filtered collection without any parameters"
-    final JPAEntityCollection<Object> collection = Composition.of(filters).apply(
-      new JPAEntityCollection<>(manager, Object.class)
-    ) as JPAEntityCollection<Object>
+    JPAEntityCollection<Object> result = new JPAEntityCollection<>(manager, Object.class)
+
+    for (final Filter filter : filters) {
+      result = result.addFilter(filter)
+    }
 
     when: "we get the parameters map of the request"
-    final Map<String, Object> parameters = collection.parameters
+    final Map<String, Object> parameters = result.parameters
 
     then: "we expect that the collection returns an empty map"
     parameters == [:]
@@ -260,17 +263,19 @@ class JPAEntityCollectionSpecification extends Specification {
     ]
 
     and: "a filtered collection with parameters"
-    final JPAEntityCollection<Object> collection = Composition.of(filters).apply(
-      new JPAEntityCollection<>(manager, Object.class)
-    ) as JPAEntityCollection<Object>
+    JPAEntityCollection<Object> result = new JPAEntityCollection<>(manager, Object.class)
+
+    for (final Filter filter : filters) {
+      result = result.addFilter(filter)
+    }
 
     when: "we get the parameters map of the request"
-    final Map<String, Object> parameters = collection.parameters
+    final Map<String, Object> parameters = result.parameters
 
     then: "we expect that the collection returns a valid parameter map"
-    final Map<Filter, Map<String, String>> namespacedParameters = getNamespacedParametersOf(collection)
+    final Map<Filter, Map<String, String>> namespacedParameters = getNamespacedParametersOf(result)
 
-    for (final Filter filter : collection.filters()) {
+    for (final Filter filter : result.filters) {
       for (final Map.Entry<String, Object> entry : filter.parameters) {
         parameters[namespacedParameters[filter][entry.key]] == entry.value
       }
@@ -305,9 +310,11 @@ class JPAEntityCollectionSpecification extends Specification {
     ]
 
     and: "a filtered collection"
-    final JPAEntityCollection<Object> collection = Composition.of(filters).apply(
-      new JPAEntityCollection<>(manager, Object.class)
-    ) as JPAEntityCollection<Object>
+    JPAEntityCollection<Object> collection = new JPAEntityCollection<>(manager, Object.class)
+
+    for (final Filter filter : filters) {
+      collection = collection.addFilter(filter)
+    }
 
     when: "we get the filtering clause of the request"
     final Optional<CharSequence> filteringClause = collection.filteringClause
@@ -323,7 +330,7 @@ class JPAEntityCollectionSpecification extends Specification {
     ]
     final List<String> result = []
 
-    for (final Filter filter : collection.filters()) {
+    for (final Filter filter : collection.filters) {
       result.add(resultsByFilters[filter])
     }
 
@@ -341,7 +348,7 @@ class JPAEntityCollectionSpecification extends Specification {
     final String from = collection.fromClause
 
     then: "we expect that the collection return a valid from clause"
-    from == "${collection.entityType.getName()} ${collection.entityName}"
+    from == "${collection.modelClass.getName()} ${collection.entityName}"
   }
 
   def "it can return a complete JPQL query" () {
@@ -351,8 +358,8 @@ class JPAEntityCollectionSpecification extends Specification {
     and: "a list of operators"
     final Operator[] operators = [
       Filter.expression(":this.first = 5"),
-      ExpressionOrder.expression("second").descending(),
-      ExpressionOrder.expression("first").ascending(),
+      Order.expression("second").descending(),
+      Order.expression("first").ascending(),
       Filter.expression(":this.last > :value").setParameter("value", 10),
       Filter.expression(":this.third IN :list").setParameter("list", ["banana", "apple", "pineapple"]),
       Cursor.DEFAULT
@@ -411,8 +418,8 @@ class JPAEntityCollectionSpecification extends Specification {
 
     and: "a list of operators"
     final Operator[] operators = [
-      ExpressionOrder.expression("second").descending(),
-      ExpressionOrder.expression("first").ascending(),
+      Order.expression("second").descending(),
+      Order.expression("first").ascending(),
       Cursor.DEFAULT
     ]
 
@@ -466,7 +473,6 @@ class JPAEntityCollectionSpecification extends Specification {
     final JPAEntityCollection<Object> collection = new JPAEntityCollection<>(manager, Object.class)
 
     expect: "the collection to not have any grouped expression"
-    collection.groupCount == 0
     collection.groups.empty
     !collection.grouped
   }
@@ -480,8 +486,8 @@ class JPAEntityCollectionSpecification extends Specification {
     and: "a collection"
     final JPAEntityCollection<Object> collection = Composition.of(
       Filter.expression(":this.first = 5"),
-      ExpressionOrder.expression("second").descending(),
-      ExpressionOrder.expression("first").ascending(),
+      Order.expression("second").descending(),
+      Order.expression("first").ascending(),
       Filter.expression(":this.last > :value").setParameter("value", 10),
       Filter.expression(":this.third IN :list").setParameter("list", ["banana", "apple", "pineapple"]),
       Cursor.NONE.setOffset(10).setLimit(20)
@@ -514,7 +520,7 @@ class JPAEntityCollectionSpecification extends Specification {
     final JPAEntityCollection<Object> collection = Mockito.spy(
       Composition.of(
         Filter.expression(":this.first = 5"),
-        ExpressionOrder.expression("second").descending(),
+        Order.expression("second").descending(),
         Cursor.NONE.setOffset(10).setLimit(20)
       ).apply(
         new JPAEntityCollection<Object>(manager, Object.class)
@@ -526,7 +532,7 @@ class JPAEntityCollectionSpecification extends Specification {
     Mockito.doReturn(query).when(collection).select("COUNT(:this)", Long.class)
 
     when: "we get the size of the collection"
-    final long size = collection.findSize()
+    final long size = collection.count()
 
     then: "we expect to get the size of the collection"
     isTrue Mockito.verify(collection, Mockito.times(1)).select(
@@ -544,7 +550,7 @@ class JPAEntityCollectionSpecification extends Specification {
     final JPAEntityCollection<Object> collection = Mockito.spy(
       Composition.of(
         Filter.expression(":this.first = 5"),
-        ExpressionOrder.expression("second").descending(),
+        Order.expression("second").descending(),
         Cursor.NONE.setOffset(10).setLimit(20)
       ).apply(
         new JPAEntityCollection<Object>(manager, Object.class)
@@ -561,7 +567,7 @@ class JPAEntityCollectionSpecification extends Specification {
     Mockito.doReturn(query).when(collection).select(":this", Object.class)
 
     when: "we get the content of the collection"
-    final List<Object> content = collection.find()
+    final List<Object> content = collection.fetch()
 
     then: "we expect to get the content of the collection"
     isTrue Mockito.verify(collection, Mockito.times(1)).select(
@@ -569,40 +575,6 @@ class JPAEntityCollectionSpecification extends Specification {
     )
 
     content == queryResult
-  }
-
-  def "it allows to get orderings as an iterable with the orderings() alias" () {
-    given: "an entity manager"
-    final EntityManager manager = Mockito.mock(EntityManager.class)
-
-    and: "a collection"
-    final JPAEntityCollection<Object> collection = Composition.of(
-      Filter.expression(":this.first = 5"),
-      ExpressionOrder.expression("second").descending(),
-      Cursor.NONE.setOffset(10).setLimit(20)
-    ).apply(
-      new JPAEntityCollection<Object>(manager, Object.class)
-    ) as JPAEntityCollection<Object>
-
-    expect: "to get orderings as an iterable with the orderings() alias"
-    collection.orderings() == collection.getOrderings()
-  }
-
-  def "it allows to get groups as an iterable with the groups() alias" () {
-    given: "an entity manager"
-    final EntityManager manager = Mockito.mock(EntityManager.class)
-
-    and: "a collection"
-    final JPAEntityCollection<Object> collection = Composition.of(
-      Filter.expression(":this.first = 5"),
-      ExpressionOrder.expression("second").descending(),
-      Cursor.NONE.setOffset(10).setLimit(20)
-    ).apply(
-      new JPAEntityCollection<Object>(manager, Object.class)
-    ) as JPAEntityCollection<Object>
-
-    expect: "to get groups as an iterable with the groups() alias"
-    collection.groups() == collection.getGroups()
   }
 
   def "it allows to remove a filter of the collection" () {
@@ -617,9 +589,10 @@ class JPAEntityCollectionSpecification extends Specification {
     ]
 
     and: "a collection"
-    final JPAEntityCollection<Object> collection = Composition.of(filters).apply(
-      new JPAEntityCollection<Object>(manager, Object.class)
-    ) as JPAEntityCollection<Object>
+    JPAEntityCollection<Object> collection = new JPAEntityCollection<Object>(manager, Object.class)
+    for (final Filter filter : filters) {
+      collection = collection.addFilter(filter)
+    }
 
     when: "we remove a filter from the collection"
     final JPAEntityCollection<Object> result = collection.removeFilter(filters[1])
@@ -627,25 +600,11 @@ class JPAEntityCollectionSpecification extends Specification {
     then: "to get a copy of the collection without the given filter"
     !result.is(collection)
 
-    collection.filterCount == 3
+    collection.filters.size() == 3
     collection.filters.containsAll(Arrays.asList(filters))
 
-    result.filterCount == 2
+    result.filters.size() == 2
     result.filters.containsAll([filters[0], filters[2]])
-  }
-
-  def "it throws an error when you trying to get a group" () {
-    given: "an entity manager"
-    final EntityManager manager = Mockito.mock(EntityManager.class)
-
-    and: "a collection"
-    final JPAEntityCollection<Object> collection = new JPAEntityCollection<Object>(manager, Object.class)
-
-    when: "we trying to get a grouping clause"
-    collection.getGroup(0)
-
-    then: "we expect that the collection raise an IndexOutOfBoundsException"
-    thrown(IndexOutOfBoundsException.class)
   }
 
   def 'it define a custom equals method' () {
@@ -662,8 +621,8 @@ class JPAEntityCollectionSpecification extends Specification {
     final Operator[] operators = [
       Filter.expression(":this.first = 3"),
       Filter.expression(":this.first = :value").setParameter("value", 3),
-      ExpressionOrder.expression(":this.first").ascending(),
-      ExpressionOrder.expression(":this.first").descending(),
+      Order.expression(":this.first").ascending(),
+      Order.expression(":this.first").descending(),
       Cursor.ALL, Cursor.DEFAULT
     ]
 
@@ -691,8 +650,8 @@ class JPAEntityCollectionSpecification extends Specification {
     final Operator[] operators = [
       Filter.expression(":this.first = 3"),
       Filter.expression(":this.first = :value").setParameter("value", 3),
-      ExpressionOrder.expression(":this.first").ascending(),
-      ExpressionOrder.expression(":this.first").descending(),
+      Order.expression(":this.first").ascending(),
+      Order.expression(":this.first").descending(),
       Cursor.ALL, Cursor.DEFAULT
     ]
 
@@ -711,7 +670,7 @@ class JPAEntityCollectionSpecification extends Specification {
     final JPAEntityCollection<Object> collection = Composition.of(
       Cursor.DEFAULT,
       Filter.expression(":this.first = 5"),
-      ExpressionOrder.expression("plopl").ascending()
+      Order.expression("plopl").ascending()
     ).apply(new JPAEntityCollection<>(manager, Object.class)) as JPAEntityCollection<Object>
 
     and: 'a group operator'
@@ -723,7 +682,7 @@ class JPAEntityCollectionSpecification extends Specification {
     then: 'we expect to get a valid grouped collection instance'
     result instanceof GroupedJPAEntityCollection
     (result as GroupedJPAEntityCollection).groupedCollection.is(collection)
-    (result as GroupedJPAEntityCollection).getGroup(0) == group
-    (result as GroupedJPAEntityCollection).groupCount == 1
+    (result as GroupedJPAEntityCollection).groups[0] == group
+    (result as GroupedJPAEntityCollection).groups.size() == 1
   }
 }

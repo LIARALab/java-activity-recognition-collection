@@ -22,12 +22,16 @@
 package org.liara.collection;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.operator.Operator;
 
+import java.util.List;
+
 /**
- * A collection of values.
+ * A collection of models.
  */
-public interface Collection {
+public interface Collection<Model>
+{
   /**
    * Apply an operator on this collection and return the result.
    *
@@ -35,11 +39,17 @@ public interface Collection {
    *
    * @return The result of this operation over this collection.
    */
-  default @NonNull Collection apply (@NonNull final Operator operator) {
+  default @NonNull Collection<?> apply (@NonNull final Operator operator) {
     return operator.apply(this);
   }
 
-  @NonNull Collection clear ();
+  @NonNull Long count ();
+
+  @NonNull List<Model> fetch ();
+
+  @NonNull Collection<?> setOperator (@Nullable final Operator operator);
 
   @NonNull Operator getOperator ();
+
+  @NonNull Class<Model> getModelClass ();
 }

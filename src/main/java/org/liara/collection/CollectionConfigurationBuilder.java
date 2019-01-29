@@ -188,13 +188,10 @@ public class CollectionConfigurationBuilder
     if (other instanceof CollectionConfigurationBuilder) {
       @NonNull final CollectionConfigurationBuilder otherConfiguration = (CollectionConfigurationBuilder) other;
 
-      return Objects.equals(_cursor, otherConfiguration.getCursor()) && Objects.equals(
-        _filters,
-        otherConfiguration.getFilters()
-      ) && Objects.equals(_orderings, otherConfiguration.getOrderings()) && Objects.equals(
-        _joins,
-        otherConfiguration.getJoins()
-      );
+      return Objects.equals(_cursor, otherConfiguration.getCursor()) &&
+             Objects.equals(_filters, otherConfiguration.getFilters()) &&
+             Objects.equals(_orderings, otherConfiguration.getOrderings()) &&
+             Objects.equals(_joins, otherConfiguration.getJoins());
     }
 
     return false;

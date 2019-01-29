@@ -48,9 +48,9 @@ public interface Order
    * @see Operator#apply(Collection)
    */
   @Override
-  default @NonNull Collection apply (@NonNull final Collection collection) {
+  default <Model> @NonNull Collection<Model> apply (@NonNull final Collection<Model> collection) {
     if (collection instanceof OrderableCollection) {
-      return ((OrderableCollection) collection).orderBy(this);
+      return ((OrderableCollection<Model>) collection).orderBy(this);
     }
 
     return collection;

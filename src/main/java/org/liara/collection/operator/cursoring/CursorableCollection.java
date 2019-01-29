@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,10 @@ package org.liara.collection.operator.cursoring;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.Collection;
 
-public interface CursorableCollection extends Collection
+public interface CursorableCollection<Model>
+  extends Collection<Model>
 {
-  @NonNull CursorableCollection setCursor (@NonNull final Cursor cursor);
+  @NonNull CursorableCollection<Model> setCursor (@NonNull final Cursor cursor);
 
   @NonNull Cursor getCursor ();
 }

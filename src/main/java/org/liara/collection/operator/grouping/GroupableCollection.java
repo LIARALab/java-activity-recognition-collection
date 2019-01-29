@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,28 +22,21 @@
 
 package org.liara.collection.operator.grouping;
 
-import org.checkerframework.checker.index.qual.LessThan;
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.Collection;
 
 import java.util.List;
 
-public interface GroupableCollection extends Collection
+public interface GroupableCollection<Entity>
+  extends Collection<Entity>
 {
-  @NonNull GroupableCollection groupBy (@NonNull final Group group);
+  @NonNull GroupableCollection<Entity> groupBy (@NonNull final Group group);
 
-  @NonNull GroupableCollection ungroup (@NonNull final Group group);
-
-  @NonNull Group getGroup (@NonNegative @LessThan("this.getGroupCount()") final int index);
-
-  @NonNegative int getGroupCount ();
+  @NonNull GroupableCollection<Entity> ungroup (@NonNull final Group group);
 
   @NonNull List<@NonNull Group> getGroups ();
 
-  @NonNull Iterable<@NonNull Group> groups ();
-
   default boolean isGrouped () {
-    return getGroupCount() > 0;
+    return !getGroups().isEmpty();
   }
 }
