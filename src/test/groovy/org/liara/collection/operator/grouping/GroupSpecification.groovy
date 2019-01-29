@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -84,7 +84,7 @@ class GroupSpecification extends Specification {
     Mockito.when(collection.groupBy(group)).thenReturn(resultCollection)
 
     when: "we apply the group operator to the groupable collection"
-    final GroupableCollection result = group.apply(collection)
+    final Collection result = group.apply(collection)
 
     then: "we expect that the operator has updated the groupable collection"
     result == resultCollection

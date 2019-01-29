@@ -47,7 +47,7 @@ class ExpressionOrderSpecification
 
     when: "we create an ordering operator for a given expression"
     final ExpressionOrder order = new ExpressionOrder(attribute)
-    final ExpressionOrder builtOrder = ExpressionOrder.expression(attribute)
+    final ExpressionOrder builtOrder = new ExpressionOrder(attribute)
 
     then: "we expect to create an ascending operator for the given expression"
     order.direction == OrderingDirection.ASCENDING
@@ -193,7 +193,7 @@ class ExpressionOrderSpecification
     Mockito.when(collection.orderBy(order)).thenReturn(resultCollection)
 
     when: "we apply the order operator to the orderable collection"
-    final OrderableCollection result = order.apply(collection)
+    final Collection result = order.apply(collection)
 
     then: "we expect that the operator has updated the orderable collection"
     result == resultCollection
@@ -202,7 +202,7 @@ class ExpressionOrderSpecification
   def 'it define a custom equals method' () {
     expect: 'equal operator to behave accordingly with the standards'
     ExpressionOrder.expression(':this.other') != null
-    final ExpressionOrder instance = ExpressionOrder.expression(':this.other')
+    final ExpressionOrder instance = new ExpressionOrder(':this.other')
     instance == instance
     ExpressionOrder.expression(':this.first') == ExpressionOrder.expression(':this.first')
     ExpressionOrder.expression(':this.first') != ExpressionOrder.expression(':this.other')

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -53,7 +53,7 @@ class FilterSpecification extends Specification {
     Mockito.when(collection.addFilter(filter)).thenReturn(resultCollection)
 
     when: "we apply the filter operator to the filterable collection"
-    final FilterableCollection result = filter.apply(collection)
+    final Collection result = filter.apply(collection)
 
     then: "we expect that the operator has updated the filterable collection"
     result == resultCollection

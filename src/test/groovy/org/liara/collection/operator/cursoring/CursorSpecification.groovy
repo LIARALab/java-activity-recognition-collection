@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,33 +22,35 @@
 
 package org.liara.collection.operator.cursoring
 
-import org.liara.collection.Collection as LIARACollection
+import org.liara.collection.Collection
 import org.mockito.Mockito
 import spock.lang.Specification
 
 class CursorSpecification extends Specification
 {
-  def "it initialize an unlimited cursor with zero offset by default" () {
+  def "it instantiate a cursor with zero offset by default" () {
     expect: "to initialize an unlimited cursor with zero offset by default"
-      new Cursor().hasLimit() == false
+    !new Cursor().hasLimit()
       new Cursor().offset == 0
   }
 
-  def "it can be instantiated with a limit" () {
+  def "it is instantiable with a limit" () {
     expect: "to be instantiable with a limit"
       new Cursor(100).limit == 100
+    new Cursor(100).offset == 0
       new Cursor(25).limit == 25
+    new Cursor(25).offset == 0
   }
 
-  def "it can be instantiable with an offset with limit" () {
-    expect: "to be instantiable with a limit"
+  def "it is instantiable with an offset and with a limit" () {
+    expect: "to be instantiable with an offset and with a limit"
     new Cursor(10,100).limit == 100
     new Cursor(10,100).offset == 10
     new Cursor(5,25).limit == 25
     new Cursor(5,25).offset == 5
   }
 
-  def "it can be instantiable from another cursor" () {
+  def "it is instantiable as a copy of another cursor" () {
     given: "a source cursor"
     final Cursor source = new Cursor(10, 150)
 
@@ -121,7 +123,7 @@ class CursorSpecification extends Specification
     final Cursor cursor = new Cursor(10, 150)
 
     and: "an uncursorable collection"
-    final LIARACollection collection = Mockito.mock(LIARACollection.class)
+    final Collection collection = Mockito.mock(Collection.class)
 
     when: "we apply the cursor operator to the uncursorable collection"
     cursor.apply(collection)
@@ -140,7 +142,7 @@ class CursorSpecification extends Specification
     Mockito.when(collection.setCursor(cursor)).thenReturn(resultCollection)
 
     when: "we apply the cursor operator to the cursorable collection"
-    final CursorableCollection result = cursor.apply(collection)
+    final Collection result = cursor.apply(collection)
 
     then: "we expect that the operator has updated the cursorable collection"
     result == resultCollection
