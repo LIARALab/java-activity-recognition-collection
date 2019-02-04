@@ -38,11 +38,17 @@ public class DeepJoin<Related>
   private final Join<Related> _next;
 
   public DeepJoin (
-    @NonNull final Join<?> base, @NonNull final Join<Related> next
+    @NonNull final Join<?> base,
+    @NonNull final Join<Related> next
   )
   {
-    _base = base;
-    _next = next;
+    if (next instanceof DeepJoin) {
+      _base = base.join(((DeepJoin<Object>) next).getBase());
+      _next = ((DeepJoin<Related>) next).getNext();
+    } else {
+      _base = base;
+      _next = next;
+    }
   }
 
   public DeepJoin (

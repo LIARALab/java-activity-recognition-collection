@@ -22,7 +22,6 @@
 
 package org.liara.collection.jpa;
 
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.operator.filtering.Filter;
 import org.liara.collection.operator.joining.DeepJoin;
@@ -30,7 +29,6 @@ import org.liara.collection.operator.joining.InnerJoin;
 import org.liara.collection.operator.joining.Join;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class JPAJoinClauseBuilder
 {
@@ -38,7 +36,7 @@ public class JPAJoinClauseBuilder
   private final Map<@NonNull String, @NonNull Join> _joins;
 
   @NonNull
-  private final Set<@NonNull String> _builtJoins;
+  private final Set<@NonNull Join> _builtJoins;
 
   public JPAJoinClauseBuilder () {
     _joins = new HashMap<>();
@@ -56,80 +54,84 @@ public class JPAJoinClauseBuilder
     @NonNull final List<@NonNull CharSequence> sequences = new LinkedList<>();
 
     for (@NonNull final String name : _joins.keySet()) {
-      sequences.addAll(build(name));
+      sequences.addAll(build(_joins.get(name)));
     }
 
-    return sequences.stream()
-             .collect(Collectors.joining(" "));
+    return String.join(" ", sequences);
   }
 
-  private @NonNull List<@NonNull CharSequence> build (@NonNull final String name) {
-    if (_builtJoins.contains(name)) return Collections.emptyList();
+  private @NonNull List<@NonNull CharSequence> build (@NonNull final Join join) {
+    if (_builtJoins.contains(join)) return Collections.emptyList();
 
     @NonNull final List<CharSequence> result;
-    @NonNull final Join               join = _joins.get(name);
 
     if (join instanceof DeepJoin) {
       @NonNull final DeepJoin deepJoin = (DeepJoin) join;
 
       result = new LinkedList<>();
 
-      result.addAll(build(deepJoin.getBase()
-                            .getName()));
-      result.addAll(build(deepJoin.getBase()
-                            .getName(), deepJoin.getNext()));
+      result.addAll(build(deepJoin.getBase()));
+      result.addAll(getClause(deepJoin, deepJoin.getBase().getName()));
     } else {
-      result = build(":super", join);
+      result = getClause(join, ":super");
     }
 
-    _builtJoins.add(name);
+    _builtJoins.add(join);
     return result;
   }
 
-  private @NonNull List<@NonNull CharSequence> build (
-    @NonNull final String superIdentifier, @NonNull final Join join
+  private @NonNull List<@NonNull CharSequence> getClause (
+    @NonNull final Join join,
+    @NonNull final String superIdentifier
   )
   {
     if (join instanceof InnerJoin) {
-      return Collections.singletonList(getInnerJoinClause(superIdentifier, (InnerJoin) join));
-    } else {
-      return Collections.emptyList();
+      return Collections.singletonList(
+        getInnerJoinClause((InnerJoin) join, join.getName(), superIdentifier)
+      );
+    } else if (join instanceof DeepJoin && ((DeepJoin) join).getNext() instanceof InnerJoin) {
+      return Collections.singletonList(
+        getInnerJoinClause(
+          (InnerJoin) (((DeepJoin) join).getNext()),
+          join.getName(),
+          superIdentifier
+        )
+      );
     }
+
+    return Collections.emptyList();
   }
 
   private @NonNull CharSequence getInnerJoinClause (
-    @NonNull final String superIdentifier, @NonNull final InnerJoin join
+    @NonNull final InnerJoin join,
+    @NonNull final String alias,
+    @NonNull final String superIdentifier
   )
   {
     @NonNull final StringBuilder clause = new StringBuilder();
 
     clause.append("INNER JOIN ");
-    clause.append(join.getRelatedClass()
-                    .getName());
+    clause.append(join.getRelatedClass().getName());
     clause.append(" ");
-    clause.append(join.getName());
+    clause.append(alias);
 
-    if (join.getFilters()
-          .size() > 0) {
+    if (join.getFilters().size() > 0) {
       clause.append(" ON ");
 
-      @NonNull final Iterator<@NonNull Filter> filters = join.filters()
-                                                           .iterator();
-      @NonNegative int                         index   = 0;
+      @NonNull final Iterator<@NonNull Filter> filters = join.filters().iterator();
+      @NonNull final FilterNamespacer          namespacer = new FilterNamespacer(alias);
 
       while (filters.hasNext()) {
         @NonNull final Filter filter = filters.next();
 
-        clause.append(filter.getExpression()
-                        .replaceAll(":super", superIdentifier)
-                        .replaceAll(":this", join.getName())
-                        .replaceAll(":([a-zA-Z0-9_]+)", String.join("", ":filter", String.valueOf(index), "_$1")));
+        clause.append(
+          FilterNamespacer.PATTERN.matcher(filter.getExpression()).replaceAll(namespacer)
+            .replaceAll(":super", superIdentifier)
+        );
 
-        if (filters.hasNext()) {
-          clause.append(" AND ");
-        }
+        if (filters.hasNext()) clause.append(" AND ");
 
-        index += 1;
+        namespacer.next();
       }
     }
 

@@ -19,55 +19,40 @@
  * ARISING  FROM,  OUT  OF OR  IN  CONNECTION  WITH THE  SOFTWARE OR  THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.liara.collection;
+
+package org.liara.collection.jpa;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.liara.collection.operator.Operator;
 
-import java.util.List;
+import java.util.function.Function;
+import java.util.regex.MatchResult;
+import java.util.regex.Pattern;
 
-/**
- * A collection of models.
- */
-public interface Collection<Model>
+public class FilterNamespacer
+  implements Function<@NonNull MatchResult, @NonNull String>
 {
-  /**
-   * Apply an operator on this collection and return the result.
-   *
-   * @param operator An operator to apply.
-   *
-   * @return The result of this operation over this collection.
-   */
-  default @NonNull Collection<?> apply (@NonNull final Operator operator) {
-    return operator.apply(this);
+  @NonNull
+  public static final Pattern PATTERN = Pattern.compile(":([a-zA-Z0-9_]+)");
+  @NonNull
+  private final       String  _entityName;
+  private             int     _index  = 0;
+
+  public FilterNamespacer (@NonNull final String entityName) {
+    _entityName = entityName;
   }
 
-  @NonNull Long count ();
-
-  @NonNull List<Model> fetch ();
-
-  default @NonNull Model fetch (final int index) {
-    return fetch().get(index);
+  public void next () {
+    _index += 1;
   }
 
-  @NonNull Collection<?> setOperator (@Nullable final Operator operator);
-
-  @NonNull Operator getOperator ();
-
-  @SuppressWarnings("unchecked") // Checked by the comparison to the inner model class.
-  default <Cast> @NonNull Collection<Cast> expectedToBeCollectionOf (
-    @NonNull final Class<Cast> clazz
-  ) {
-    if (getModelClass().equals(clazz)) {
-      return (Collection<Cast>) this;
+  @Override
+  public @NonNull String apply (@NonNull final MatchResult result) {
+    if (result.group().startsWith(":this")) {
+      return _entityName + result.group().substring(5);
+    } else if (result.group().startsWith(":super")) {
+      return result.group();
     } else {
-      throw new Error(
-        "Invalid collection type, received collection of type " + getModelClass() +
-        " instead of a collection of type " + clazz
-      );
+      return ":filter" + String.valueOf(_index) + "_" + result.group(1);
     }
   }
-
-  @NonNull Class<Model> getModelClass ();
 }

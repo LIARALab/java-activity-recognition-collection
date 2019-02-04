@@ -53,7 +53,7 @@ public class Cursor implements Operator
    * A cursor that select the first element.
    */
   @NonNull
-  public static final Cursor FIRST = new Cursor(0, 0);
+  public static final Cursor FIRST = new Cursor(0, 1);
 
   /**
    * An empty cursor that does not skip entities and does not display any entities of the given collection.

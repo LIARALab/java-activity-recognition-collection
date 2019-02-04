@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +40,7 @@ public class ExistsFilter
   private final String _expression;
 
   @NonNull
-  private final Map<String, Object> _parameters;
+  private final Map<@NonNull String, @NonNull Object> _parameters;
 
   public ExistsFilter (@NonNull final JPAEntityCollection collection) {
     _collection = collection;
@@ -49,7 +49,8 @@ public class ExistsFilter
   }
 
   public ExistsFilter (
-    @NonNull final JPAEntityCollection collection, @NonNull final String expression
+    @NonNull final JPAEntityCollection collection,
+    @NonNull final String expression
   )
   {
     _collection = collection;
@@ -58,7 +59,8 @@ public class ExistsFilter
   }
 
   public ExistsFilter (
-    @NonNull final ExistsFilter toCopy, @NonNull final String expression
+    @NonNull final ExistsFilter toCopy,
+    @NonNull final String expression
   )
   {
     _collection = toCopy.getCollection();
@@ -67,7 +69,8 @@ public class ExistsFilter
   }
 
   public ExistsFilter (
-    @NonNull final ExistsFilter toCopy, @NonNull final Map<String, Object> parameters
+    @NonNull final ExistsFilter toCopy,
+    @NonNull final Map<String, Object> parameters
   )
   {
     _collection = toCopy.getCollection();
@@ -76,7 +79,8 @@ public class ExistsFilter
   }
 
   public ExistsFilter (
-    @NonNull final ExistsFilter toCopy, @NonNull final JPAEntityCollection collection
+    @NonNull final ExistsFilter toCopy,
+    @NonNull final JPAEntityCollection collection
   )
   {
     _collection = collection;
@@ -92,7 +96,13 @@ public class ExistsFilter
 
   @Override
   public @NonNull String getExpression () {
-    return _expression.replace(":count", _collection.getQuery("COUNT(*)")).replace(":context", ":this");
+    return _expression.replace(
+      ":count",
+      "(" +
+      _collection.getQuery("COUNT(:this)", ":this_" + _collection.getEntityName())
+        .toString().replace(":super", ":this") +
+      ")"
+    );
   }
 
   @Override
@@ -129,7 +139,11 @@ public class ExistsFilter
 
   @Override
   public @NonNull Map<@NonNull String, @NonNull Object> getParameters () {
-    return Collections.unmodifiableMap(_parameters);
+    @NonNull final Map<@NonNull String, @NonNull Object> parameters = new HashMap<>(_parameters);
+    parameters.putAll(_collection.getParameters());
+
+
+    return Collections.unmodifiableMap(parameters);
   }
 
   public @NonNull JPAEntityCollection getCollection () {

@@ -144,14 +144,17 @@ public class JPAEntityCollection<Entity>
    * @return This collection ordering clause.
    */
   public @NonNull Optional<CharSequence> getOrderingClause () {
+    return getOrderingClause(getEntityName());
+  }
+
+  public @NonNull Optional<CharSequence> getOrderingClause (@NonNull final String alias) {
     if (isOrdered()) {
-      @NonNull final String        entityName    = getEntityName();
       @NonNull final StringBuilder query         = new StringBuilder();
       @NonNegative final int       orderingCount = _configuration.getOrderings().size();
 
       for (int index = 0; index < orderingCount; ++index) {
         @NonNull final Order order = _configuration.getOrderings().get(index);
-        query.append(order.getExpression().replaceAll(":this", entityName));
+        query.append(order.getExpression().replaceAll(":this", alias));
         query.append(" ");
         switch (order.getDirection()) {
           case ASCENDING: query.append("ASC"); break;
@@ -175,11 +178,15 @@ public class JPAEntityCollection<Entity>
    * @return This collection join clause.
    */
   private @NonNull Optional<CharSequence> getJoinClause () {
+    return getJoinClause(getEntityName());
+  }
+
+  private @NonNull Optional<CharSequence> getJoinClause (@NonNull final String alias) {
     if (hasExplicitJoins()) {
       _jpaJoinClauseBuilder.setJoins(_configuration.getJoins());
       return Optional.of(_jpaJoinClauseBuilder.build()
                            .toString()
-                           .replaceAll(":super", getEntityName()));
+                           .replaceAll(":super", alias));
     }
 
     return Optional.empty();
@@ -195,6 +202,7 @@ public class JPAEntityCollection<Entity>
     return false;
   }
 
+
   /**
    * Compile and return this collection filtering clause.
    *
@@ -203,29 +211,28 @@ public class JPAEntityCollection<Entity>
    * @return This collection filtering clause.
    */
   public @NonNull Optional<CharSequence> getFilteringClause () {
+    return getFilteringClause(getEntityName());
+  }
+
+
+  public @NonNull Optional<CharSequence> getFilteringClause (@NonNull final String alias) {
     if (isFiltered()) {
-      @NonNull final String entityName = getEntityName();
-      @NonNull final StringBuilder query = new StringBuilder();
-      @NonNull final Iterator<@NonNull Filter> filters = _configuration.getFilters().iterator();
-      @NonNegative int index = 0;
+      @NonNull final StringBuilder             query      = new StringBuilder();
+      @NonNull final Iterator<@NonNull Filter> filters    = _configuration.getFilters().iterator();
+      @NonNull final FilterNamespacer          namespacer = new FilterNamespacer(alias);
 
       while (filters.hasNext()) {
         @NonNull final Filter filter = filters.next();
 
         query.append(
-          filter.getExpression()
-                .replaceAll(":this", entityName)
-                .replaceAll(
-                  ":([a-zA-Z0-9_]+)",
-                  String.join("", ":filter", String.valueOf(index), "_$1")
-                )
+          FilterNamespacer.PATTERN.matcher(filter.getExpression()).replaceAll(namespacer)
         );
 
         if (filters.hasNext()) {
           query.append(" AND ");
         }
 
-        index += 1;
+        namespacer.next();
       }
 
       return Optional.of(query);
@@ -240,7 +247,11 @@ public class JPAEntityCollection<Entity>
    * @return This collection from clause.
    */
   public @NonNull CharSequence getFromClause () {
-    return _modelClass.getName() + " " + getEntityName();
+    return getFromClause(getEntityName());
+  }
+
+  public @NonNull CharSequence getFromClause (@NonNull final String alias) {
+    return _modelClass.getName() + " " + alias;
   }
 
   /**
@@ -253,20 +264,27 @@ public class JPAEntityCollection<Entity>
   public @NonNull CharSequence getQuery (
     @NonNull final String selection
   ) {
+    return getQuery(selection, getEntityName());
+  }
+
+  public @NonNull CharSequence getQuery (
+    @NonNull final String selection,
+    @NonNull final String alias
+  ) {
     @NonNull final StringBuilder          query           = new StringBuilder();
-    @NonNull final Optional<CharSequence> filteringClause = getFilteringClause();
-    @NonNull final Optional<CharSequence> orderingClause  = getOrderingClause();
-    @NonNull final Optional<CharSequence> joinClause      = getJoinClause();
+    @NonNull final Optional<CharSequence> filteringClause = getFilteringClause(alias);
+    @NonNull final Optional<CharSequence> orderingClause  = getOrderingClause(alias);
+    @NonNull final Optional<CharSequence> joinClause      = getJoinClause(alias);
 
     query.append("SELECT ");
-    query.append(selection.replaceAll(":this", getEntityName()));
+    query.append(selection.replaceAll(":this", alias));
 
     query.append(" FROM ");
-    query.append(getFromClause());
+    query.append(getFromClause(alias));
 
     if (joinClause.isPresent()) {
       query.append(" ");
-      query.append(joinClause);
+      query.append(joinClause.get());
     }
 
     if (filteringClause.isPresent()) {
