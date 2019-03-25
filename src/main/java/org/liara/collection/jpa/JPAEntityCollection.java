@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.hibernate.CacheMode;
+import org.hibernate.jpa.QueryHints;
 import org.liara.collection.Collection;
 import org.liara.collection.CollectionConfiguration;
 import org.liara.collection.CollectionConfigurationBuilder;
@@ -349,6 +351,7 @@ public class JPAEntityCollection<Entity>
     }
 
     result.setFirstResult(cursor.getOffset());
+    result.setHint(QueryHints.HINT_CACHE_MODE, CacheMode.IGNORE);
 
     if (cursor.hasLimit()) {
       result.setMaxResults(cursor.getLimit());

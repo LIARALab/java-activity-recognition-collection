@@ -22,6 +22,8 @@
 
 package org.liara.collection.jpa
 
+import org.hibernate.CacheMode
+import org.hibernate.annotations.QueryHints
 import org.liara.collection.Specification
 import org.liara.collection.operator.Composition
 import org.liara.collection.operator.Operator
@@ -508,6 +510,7 @@ class JPAEntityCollectionSpecification extends Specification {
 
     isTrue Mockito.verify(query, Mockito.times(1)).setFirstResult(collection.cursor.offset)
     isTrue Mockito.verify(query, Mockito.times(1)).setMaxResults(collection.cursor.limit)
+    isTrue Mockito.verify(query, Mockito.times(1)).setHint(QueryHints.CACHE_MODE, CacheMode.IGNORE)
 
     isTrue Mockito.verifyNoMoreInteractions(query)
   }

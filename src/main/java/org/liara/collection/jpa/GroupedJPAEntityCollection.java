@@ -26,6 +26,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.com.google.common.collect.Iterables;
 import org.checkerframework.common.value.qual.MinLen;
+import org.hibernate.CacheMode;
+import org.hibernate.jpa.QueryHints;
 import org.liara.collection.Collection;
 import org.liara.collection.operator.Composition;
 import org.liara.collection.operator.Operator;
@@ -151,6 +153,8 @@ public class      GroupedJPAEntityCollection<Entity>
     for (final Map.Entry<String, Object> parameter : getParameters().entrySet()) {
       result.setParameter(parameter.getKey(), parameter.getValue());
     }
+
+    result.setHint(QueryHints.HINT_CACHE_MODE, CacheMode.IGNORE);
 
     return result;
   }
