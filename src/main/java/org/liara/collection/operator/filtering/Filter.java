@@ -25,7 +25,7 @@ package org.liara.collection.operator.filtering;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
-import org.liara.collection.jpa.JPAEntityCollection;
+import org.liara.collection.ModelCollection;
 import org.liara.collection.operator.Operator;
 import org.liara.collection.operator.joining.Join;
 
@@ -38,7 +38,7 @@ public interface Filter
     return new ExpressionFilter(expression);
   }
 
-  static @NonNull Filter exists (@NonNull final JPAEntityCollection collection) {
+  static @NonNull Filter exists (@NonNull final ModelCollection collection) {
     return new ExistsFilter(collection);
   }
 

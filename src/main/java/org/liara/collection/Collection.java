@@ -25,8 +25,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.operator.Operator;
 
-import java.util.List;
-
 /**
  * A collection of models.
  */
@@ -43,20 +41,12 @@ public interface Collection<Model>
     return operator.apply(this);
   }
 
-  @NonNull Long count ();
-
-  @NonNull List<Model> fetch ();
-
-  default @NonNull Model fetch (final int index) {
-    return fetch().get(index);
-  }
-
   @NonNull Collection<?> setOperator (@Nullable final Operator operator);
 
   @NonNull Operator getOperator ();
 
   @SuppressWarnings("unchecked") // Checked by the comparison to the inner model class.
-  default <Cast> @NonNull Collection<Cast> expectedToBeCollectionOf (
+  default <Cast> @NonNull Collection<Cast> collectionOf (
     @NonNull final Class<Cast> clazz
   ) {
     if (getModelClass().equals(clazz)) {

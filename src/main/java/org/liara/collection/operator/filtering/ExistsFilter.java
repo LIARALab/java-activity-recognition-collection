@@ -24,7 +24,8 @@ package org.liara.collection.operator.filtering;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.liara.collection.jpa.JPAEntityCollection;
+import org.liara.collection.ModelCollection;
+import org.liara.collection.jpa.JPACollections;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,7 +35,7 @@ public class ExistsFilter
   implements Filter
 {
   @NonNull
-  private final JPAEntityCollection _collection;
+  private final ModelCollection _collection;
 
   @NonNull
   private final String _expression;
@@ -42,14 +43,14 @@ public class ExistsFilter
   @NonNull
   private final Map<@NonNull String, @NonNull Object> _parameters;
 
-  public ExistsFilter (@NonNull final JPAEntityCollection collection) {
+  public ExistsFilter (@NonNull final ModelCollection collection) {
     _collection = collection;
     _expression = ":count > 0";
     _parameters = new HashMap<>();
   }
 
   public ExistsFilter (
-    @NonNull final JPAEntityCollection collection,
+    @NonNull final ModelCollection collection,
     @NonNull final String expression
   )
   {
@@ -80,7 +81,7 @@ public class ExistsFilter
 
   public ExistsFilter (
     @NonNull final ExistsFilter toCopy,
-    @NonNull final JPAEntityCollection collection
+    @NonNull final ModelCollection collection
   )
   {
     _collection = collection;
@@ -99,7 +100,7 @@ public class ExistsFilter
     return _expression.replace(
       ":count",
       "(" +
-      _collection.getQuery("COUNT(:this)", ":this_" + _collection.getEntityName())
+      JPACollections.getQuery(_collection, "COUNT(:this)", ":this_" + _collection.getEntityName())
         .toString().replace(":super", ":this") +
       ")"
     );
@@ -140,13 +141,13 @@ public class ExistsFilter
   @Override
   public @NonNull Map<@NonNull String, @NonNull Object> getParameters () {
     @NonNull final Map<@NonNull String, @NonNull Object> parameters = new HashMap<>(_parameters);
-    parameters.putAll(_collection.getParameters());
+    parameters.putAll(JPACollections.getParameters(_collection));
 
 
     return Collections.unmodifiableMap(parameters);
   }
 
-  public @NonNull JPAEntityCollection getCollection () {
+  public @NonNull ModelCollection getCollection () {
     return _collection;
   }
 }

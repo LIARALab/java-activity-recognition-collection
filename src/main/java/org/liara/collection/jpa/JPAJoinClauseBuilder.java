@@ -118,7 +118,7 @@ public class JPAJoinClauseBuilder
     if (join.getFilters().size() > 0) {
       clause.append(" ON ");
 
-      @NonNull final Iterator<@NonNull Filter> filters = join.filters().iterator();
+      @NonNull final Iterator<@NonNull Filter> filters    = join.filters().iterator();
       @NonNull final FilterNamespacer          namespacer = new FilterNamespacer(alias);
 
       while (filters.hasNext()) {
