@@ -28,5 +28,9 @@ import org.liara.collection.operator.Operator;
 public interface Aggregate
   extends Operator
 {
+  static @NonNull ExpressionAggregate expression (@NonNull final String expression) {
+    return new ExpressionAggregate(expression);
+  }
+
   @NonNull String getExpression ();
 }

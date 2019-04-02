@@ -45,10 +45,6 @@ public class ExpressionAggregate
     _expression = toCopy.getExpression();
   }
 
-  public static @NonNull ExpressionAggregate expression (@NonNull final String expression) {
-    return new ExpressionAggregate(expression);
-  }
-
   @Override
   public @NonNull Operator join (@NonNull final Join join) {
     return new JoinAggregate(join, this);
