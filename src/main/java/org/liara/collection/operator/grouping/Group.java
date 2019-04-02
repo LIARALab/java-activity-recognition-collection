@@ -28,5 +28,9 @@ import org.liara.collection.operator.Operator;
 public interface Group
   extends Operator
 {
+  static @NonNull Group expression (@NonNull final String expression) {
+    return new ExpressionGroup(expression);
+  }
+
   @NonNull String getExpression ();
 }

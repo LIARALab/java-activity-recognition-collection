@@ -24,7 +24,7 @@ package org.liara.collection
 
 import org.liara.collection.operator.cursoring.Cursor
 import org.liara.collection.operator.filtering.Filter
-import org.liara.collection.operator.grouping.ExpressionGroup
+import org.liara.collection.operator.grouping.Group
 import org.liara.collection.operator.ordering.Order
 import org.mockito.Mockito
 
@@ -36,16 +36,17 @@ class ModelAggregationSpecification
     final ModelCollection<Object> collection = Mockito.mock(ModelCollection.class)
 
     and: "a list of group operators"
-    final ExpressionGroup[] groups = [
-      ExpressionGroup.expression(":this.first"),
-      ExpressionGroup.expression(":this.second"),
-      ExpressionGroup.expression(":this.last")
+    final Group[] groups = [
+      Group.expression(":this.first"),
+      Group.expression(":this.second"),
+      Group.expression(":this.last")
     ]
 
     when: "we instantiate a grouped JPA entity collection from the given collection and the given list of groups"
-    final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, Arrays.asList(groups)
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = new Groups(groups)
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> groupedCollection = builder.aggregate(collection)
 
     then: "we expect to get a valid grouped JPA entity collection instance"
     groupedCollection.groupedCollection.is(collection)
@@ -57,16 +58,17 @@ class ModelAggregationSpecification
     final ModelCollection<Object> collection = Mockito.mock(ModelCollection.class)
 
     and: "a list of group operators"
-    final ExpressionGroup[] groups = [
-      ExpressionGroup.expression(":this.first"),
-      ExpressionGroup.expression(":this.second"),
-      ExpressionGroup.expression(":this.last")
+    final Group[] groups = [
+      Group.expression(":this.first"),
+      Group.expression(":this.second"),
+      Group.expression(":this.last")
     ]
 
     and: "a source grouped JPA entity collection"
-    final ModelAggregation<Object> sourceCollection = new ModelAggregation<>(
-      collection, Arrays.asList(groups)
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = new Groups(groups)
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> sourceCollection = builder.aggregate(collection)
 
     when: "we create a copy of the source collection"
     final ModelAggregation<Object> result = new ModelAggregation<>(sourceCollection)
@@ -82,9 +84,10 @@ class ModelAggregationSpecification
     Mockito.when(collection.getEntityName()).thenReturn("ENTITY NAME")
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
-    final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, [ExpressionGroup.expression("")]
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = Groups.EMPTY
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> groupedCollection = builder.aggregate(collection)
 
     when: "we get the queried entity name from the grouped collection"
     final String result = groupedCollection.entityName
@@ -100,9 +103,10 @@ class ModelAggregationSpecification
     Mockito.when(collection.getModelClass()).thenReturn(Object.class)
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
-    final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, [ExpressionGroup.expression("")]
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = Groups.EMPTY
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> groupedCollection = builder.aggregate(collection)
 
     when: "we get the entity type from the grouped collection"
     final Class<Object> result = groupedCollection.modelClass
@@ -118,9 +122,10 @@ class ModelAggregationSpecification
     Mockito.when(collection.getCursor()).thenReturn(Cursor.DEFAULT)
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
-    final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, [ExpressionGroup.expression("")]
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = Groups.EMPTY
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> groupedCollection = builder.aggregate(collection)
 
     when: "we get the cursor from the grouped collection"
     final Cursor result = groupedCollection.cursor
@@ -136,9 +141,10 @@ class ModelAggregationSpecification
     final ModelCollection<Object> second = Mockito.mock(ModelCollection.class)
 
     and: "a grouped JPA entity collection that wrap the first entity collection"
-    final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      first, [ExpressionGroup.expression("")]
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = Groups.EMPTY
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> groupedCollection = builder.aggregate(first)
 
     when: "we set the grouped collection to the second one"
     final ModelAggregation<Object> result = groupedCollection.setGroupedCollection(second)
@@ -158,9 +164,10 @@ class ModelAggregationSpecification
     Mockito.when(first.setCursor(Mockito.any(Cursor.class))).thenReturn(updated)
 
     and: "a grouped JPA entity collection that wrap the first entity collection"
-    final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      first, [ExpressionGroup.expression("")]
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = Groups.EMPTY
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> groupedCollection = builder.aggregate(first)
 
     when: "we set the cursor of the grouped collection"
     final Cursor cursor = new Cursor(10, 5)
@@ -182,9 +189,10 @@ class ModelAggregationSpecification
     Mockito.when(first.addFilter(Mockito.any(Filter.class))).thenReturn(updated)
 
     and: "a grouped JPA entity collection that wrap the first entity collection"
-    final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      first, [ExpressionGroup.expression("")]
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = Groups.EMPTY
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> groupedCollection = builder.aggregate(first)
 
     when: "we add a filter to the grouped collection"
     final Filter filter = Mockito.mock(Filter.class)
@@ -206,9 +214,10 @@ class ModelAggregationSpecification
     Mockito.when(first.removeFilter(Mockito.any(Filter.class))).thenReturn(updated)
 
     and: "a grouped JPA entity collection that wrap the first entity collection"
-    final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      first, [ExpressionGroup.expression("")]
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = Groups.EMPTY
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> groupedCollection = builder.aggregate(first)
 
     when: "we remove a filter of the grouped collection"
     final Filter filter = Mockito.mock(Filter.class)
@@ -229,9 +238,10 @@ class ModelAggregationSpecification
     Mockito.when(collection.getFilters()).thenReturn(filters)
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
-    final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, [ExpressionGroup.expression("")]
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = Groups.EMPTY
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> groupedCollection = builder.aggregate(collection)
 
     when: "we get all filters of the grouped collection"
     final Set<Filter> result = groupedCollection.filters
@@ -246,19 +256,20 @@ class ModelAggregationSpecification
     final ModelCollection<Object> collection = Mockito.mock(ModelCollection.class)
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
-    final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, [ExpressionGroup.expression(":this.first")]
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = new Groups(Group.expression(":this.first"))
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> groupedCollection = builder.aggregate(collection)
 
     when: "we group the collection"
-    final ModelAggregation<Object> result = groupedCollection.groupBy(ExpressionGroup.expression(":this.second"))
+    final ModelAggregation<Object> result = groupedCollection.groupBy(Group.expression(":this.second"))
 
     then: "we expect to get an updated version of the collection"
     !result.is(groupedCollection)
     result.groups.size() == 2
     groupedCollection.groups.size() == 1
-    groupedCollection.groups == [ExpressionGroup.expression(":this.first")]
-    result.groups == [ExpressionGroup.expression(":this.first"), ExpressionGroup.expression(":this.second")]
+    groupedCollection.groups == [Group.expression(":this.first")]
+    result.groups == [Group.expression(":this.first"), Group.expression(":this.second")]
   }
 
   def "it allows you to order the underlying query" () {
@@ -269,9 +280,10 @@ class ModelAggregationSpecification
     Mockito.when(first.orderBy(Mockito.any(Order.class))).thenReturn(updated)
 
     and: "a grouped JPA entity collection that wrap the first entity collection"
-    final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      first, [ExpressionGroup.expression("")]
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = Groups.EMPTY
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> groupedCollection = builder.aggregate(first)
 
     when: "we order the grouped collection"
     final Order order = Mockito.mock(Order.class)
@@ -298,9 +310,10 @@ class ModelAggregationSpecification
     Mockito.when(collection.getOrderings()).thenReturn(orders)
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
-    final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, [ExpressionGroup.expression("")]
-    )
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = Groups.EMPTY
+    builder.aggregates = Aggregates.EMPTY
+    final ModelAggregation<Object> groupedCollection = builder.aggregate(collection)
 
     when: "we get all orders from the grouped collection"
     final List<Order> result = groupedCollection.orderings
@@ -316,19 +329,23 @@ class ModelAggregationSpecification
     final ModelCollection<Object> second = Mockito.mock(ModelCollection.class)
 
     and: "some groups operators"
-    final List<ExpressionGroup> groups = [
-      ExpressionGroup.expression(":this.first"),
-      ExpressionGroup.expression(":this.second"),
-      ExpressionGroup.expression(":this.third")
+    final List<Group> groups = [
+      Group.expression(":this.first"),
+      Group.expression(":this.second"),
+      Group.expression(":this.third")
     ]
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = new Groups(groups)
+    builder.aggregates = Aggregates.EMPTY
 
     expect: 'equals operator to behave accordingly with the standards'
-    new ModelAggregation<>(first, groups) != null
-    new ModelAggregation<>(first, groups) != new Object()
-    new ModelAggregation<>(first, groups) != new ModelAggregation<>(second, groups)
-    new ModelAggregation<>(first, groups) == new ModelAggregation<>(first, groups)
+    builder.aggregate(first) != null
+    builder.aggregate(first) != new Object()
+    builder.aggregate(first) != builder.aggregate(second)
+    builder.aggregate(first) == builder.aggregate(first)
 
-    final ModelAggregation<Object> base = new ModelAggregation<>(second, [])
+    builder.setGroups(Groups.EMPTY)
+    final ModelAggregation<Object> base = builder.aggregate(second)
 
     for (int x = 0; x < groups.size(); ++x) {
       for (int y = 0; y < groups.size(); ++y) {
@@ -343,22 +360,22 @@ class ModelAggregationSpecification
     final ModelCollection<Object> second = Mockito.mock(ModelCollection.class)
 
     and: "some groups operators"
-    final List<ExpressionGroup> groups = [
-      ExpressionGroup.expression(":this.first"),
-      ExpressionGroup.expression(":this.second"),
-      ExpressionGroup.expression(":this.third")
+    final List<Group> groups = [
+      Group.expression(":this.first"),
+      Group.expression(":this.second"),
+      Group.expression(":this.third")
     ]
 
+    final ModelAggregationBuilder builder = new ModelAggregationBuilder()
+    builder.groups = new Groups(groups)
+    builder.aggregates = Aggregates.EMPTY
+
     expect: 'hashcode operator to behave accordingly with the standards'
-    new ModelAggregation<>(
-      first, groups
-    ).hashCode() != new ModelAggregation<>(second, groups).hashCode()
+    builder.aggregate(first).hashCode() != builder.aggregate(second).hashCode()
+    builder.aggregate(first).hashCode() == builder.aggregate(first).hashCode()
 
-    new ModelAggregation<>(
-      first, groups
-    ).hashCode() == new ModelAggregation<>(first, groups).hashCode()
-
-    final ModelAggregation<Object> base = new ModelAggregation<>(second, [])
+    builder.setGroups(Groups.EMPTY)
+    final ModelAggregation<Object> base = builder.aggregate(second)
 
     for (int x = 0; x < groups.size(); ++x) {
       for (int y = 0; y < groups.size(); ++y) {

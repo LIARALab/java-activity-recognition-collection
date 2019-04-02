@@ -45,10 +45,6 @@ public class ExpressionGroup
     _expression = toCopy.getExpression();
   }
 
-  public static @NonNull ExpressionGroup expression (@NonNull final String expression) {
-    return new ExpressionGroup(expression);
-  }
-
   @Override
   public @NonNull Operator join (@NonNull final Join join) {
     return new JoinGroup(join, this);

@@ -207,17 +207,12 @@ public final class JPACollections
     if (groupedCollection.isGrouped()) {
       @NonNull final StringBuilder            query  = new StringBuilder();
       @NonNull final Iterator<@NonNull Group> groups = groupedCollection.getGroups().iterator();
-      int                                     index  = 0;
 
       while (groups.hasNext()) {
         @NonNull final Group group = groups.next();
 
         query.append(group.getExpression().replaceAll(":this", alias));
-        query.append(" as group_");
-        query.append(index);
         if (groups.hasNext()) query.append(", ");
-
-        index += 1;
       }
 
       return Optional.of(query);
