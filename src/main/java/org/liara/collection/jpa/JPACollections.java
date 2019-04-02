@@ -26,6 +26,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.Collection;
 import org.liara.collection.ModelAggregation;
 import org.liara.collection.ModelCollection;
+import org.liara.collection.operator.aggregate.AggregableCollection;
+import org.liara.collection.operator.aggregate.Aggregate;
 import org.liara.collection.operator.filtering.Filter;
 import org.liara.collection.operator.filtering.FilterableCollection;
 import org.liara.collection.operator.grouping.Group;
@@ -205,12 +207,60 @@ public final class JPACollections
     if (groupedCollection.isGrouped()) {
       @NonNull final StringBuilder            query  = new StringBuilder();
       @NonNull final Iterator<@NonNull Group> groups = groupedCollection.getGroups().iterator();
+      int                                     index  = 0;
 
       while (groups.hasNext()) {
         @NonNull final Group group = groups.next();
 
         query.append(group.getExpression().replaceAll(":this", alias));
+        query.append(" as group_");
+        query.append(index);
         if (groups.hasNext()) query.append(", ");
+
+        index += 1;
+      }
+
+      return Optional.of(query);
+    }
+
+    return Optional.empty();
+  }
+
+  /**
+   * @return The grouping clause of this query if any.
+   */
+  public static @NonNull Optional<CharSequence> getAggregations (
+    @NonNull final ModelAggregation<?> aggregation
+  ) {
+    return getAggregations(aggregation, aggregation.getEntityName());
+  }
+
+  /**
+   * @return The grouping clause of this query if any.
+   */
+  public static @NonNull Optional<CharSequence> getAggregations (
+    @NonNull final Collection<?> collection,
+    @NonNull final String alias
+  ) {
+    if (!(collection instanceof AggregableCollection)) return Optional.empty();
+
+    @NonNull final AggregableCollection<?> groupedCollection = (AggregableCollection<?>) collection;
+
+    if (groupedCollection.isAggregated()) {
+      @NonNull final StringBuilder query = new StringBuilder();
+      @NonNull final Iterator<@NonNull Aggregate> aggregates =
+        groupedCollection.getAggregations().iterator();
+      int index = 0;
+
+      while (aggregates.hasNext()) {
+        @NonNull final Aggregate aggregate = aggregates.next();
+
+        query.append(aggregate.getExpression().replaceAll(":this", alias));
+        query.append(" as aggregate_");
+        query.append(index);
+        if (aggregates.hasNext()) query.append(", ");
+
+        index += 1;
       }
 
       return Optional.of(query);
