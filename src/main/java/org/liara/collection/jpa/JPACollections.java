@@ -22,20 +22,22 @@
 
 package org.liara.collection.jpa;
 
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.liara.collection.Collection;
 import org.liara.collection.ModelAggregation;
 import org.liara.collection.ModelCollection;
 import org.liara.collection.operator.filtering.Filter;
+import org.liara.collection.operator.filtering.FilterableCollection;
 import org.liara.collection.operator.grouping.Group;
+import org.liara.collection.operator.grouping.GroupableCollection;
 import org.liara.collection.operator.joining.Embeddable;
 import org.liara.collection.operator.joining.Join;
+import org.liara.collection.operator.joining.JoinableCollection;
 import org.liara.collection.operator.ordering.Order;
+import org.liara.collection.operator.ordering.OrderableCollection;
+import org.liara.collection.operator.ordering.OrderingDirection;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,27 +50,24 @@ public final class JPACollections
   }
 
   public static @NonNull Optional<CharSequence> getOrderingClause (
-    @NonNull final ModelCollection<?> modelCollection,
+    @NonNull final Collection<?> collection,
     @NonNull final String alias
   ) {
-    if (modelCollection.isOrdered()) {
-      @NonNull final StringBuilder query         = new StringBuilder();
-      @NonNegative final int       orderingCount = modelCollection.getOrderings().size();
+    if (!(collection instanceof OrderableCollection)) return Optional.empty();
 
-      for (int index = 0; index < orderingCount; ++index) {
-        @NonNull final Order order = modelCollection.getOrderings().get(index);
+    @NonNull final OrderableCollection<?> orderableCollection = (OrderableCollection<?>) collection;
+
+    if (orderableCollection.isOrdered()) {
+      @NonNull final StringBuilder        query  = new StringBuilder();
+      @NonNull final List<@NonNull Order> orders = orderableCollection.getOrderings();
+
+      for (int index = 0; index < orders.size(); ++index) {
+        @NonNull final Order order = orders.get(index);
         query.append(order.getExpression().replaceAll(":this", alias));
         query.append(" ");
-        switch (order.getDirection()) {
-          case ASCENDING: query.append("ASC");
-            break;
-          case DESCENDING: query.append("DESC");
-            break;
-        }
+        query.append(order.getDirection() == OrderingDirection.ASCENDING ? "ASC" : "DESC");
 
-        if (index < orderingCount - 1) {
-          query.append(", ");
-        }
+        if (index < orders.size() - 1) query.append(", ");
       }
 
       return Optional.of(query);
@@ -90,20 +89,24 @@ public final class JPACollections
   }
 
   public static @NonNull Optional<CharSequence> getJoinClause (
-    @NonNull final ModelCollection<?> collection,
+    @NonNull final Collection<?> collection,
     @NonNull final String alias
   ) {
+    if (!(collection instanceof JoinableCollection)) return Optional.empty();
+
+    @NonNull final JoinableCollection<?> joinableCollection = (JoinableCollection<?>) collection;
     @NonNull final JPAJoinClauseBuilder builder = new JPAJoinClauseBuilder();
-    if (hasExplicitJoins(collection)) {
-      builder.setJoins(collection.getJoins());
+
+    if (hasExplicitJoins(joinableCollection)) {
+      builder.setJoins(joinableCollection.getJoins());
       return Optional.of(builder.build().toString().replaceAll(":super", alias));
     }
 
     return Optional.empty();
   }
 
-  public static boolean hasExplicitJoins (
-    @NonNull final ModelCollection<?> collection
+  private static boolean hasExplicitJoins (
+    @NonNull final JoinableCollection<?> collection
   ) {
     for (@NonNull final Join join : collection.getJoins().values()) {
       if (!(join instanceof Embeddable)) {
@@ -128,12 +131,17 @@ public final class JPACollections
   }
 
   public static @NonNull Optional<CharSequence> getFilteringClause (
-    @NonNull final ModelCollection<?> modelCollection,
+    @NonNull final Collection<?> collection,
     @NonNull final String alias
   ) {
-    if (modelCollection.isFiltered()) {
+    if (!(collection instanceof FilterableCollection)) return Optional.empty();
+
+    @NonNull final FilterableCollection<?> filterCollection = (FilterableCollection<?>) collection;
+
+    if (filterCollection.isFiltered()) {
       @NonNull final StringBuilder             query      = new StringBuilder();
-      @NonNull final Iterator<@NonNull Filter> filters    = modelCollection.getFilters().iterator();
+      @NonNull final Iterator<@NonNull Filter> filters    = filterCollection.getFilters()
+                                                              .iterator();
       @NonNull final FilterNamespacer          namespacer = new FilterNamespacer(alias);
 
       while (filters.hasNext()) {
@@ -175,12 +183,62 @@ public final class JPACollections
   }
 
   /**
+   * @return The grouping clause of this query if any.
+   */
+  public static @NonNull Optional<CharSequence> getGroupingClause (
+    @NonNull final ModelAggregation<?> aggregation
+  ) {
+    return getGroupingClause(aggregation, aggregation.getEntityName());
+  }
+
+  /**
+   * @return The grouping clause of this query if any.
+   */
+  public static @NonNull Optional<CharSequence> getGroupingClause (
+    @NonNull final Collection<?> collection,
+    @NonNull final String alias
+  ) {
+    if (!(collection instanceof GroupableCollection)) return Optional.empty();
+
+    @NonNull final GroupableCollection<?> groupedCollection = (GroupableCollection<?>) collection;
+
+    if (groupedCollection.isGrouped()) {
+      @NonNull final StringBuilder            query  = new StringBuilder();
+      @NonNull final Iterator<@NonNull Group> groups = groupedCollection.getGroups().iterator();
+
+      while (groups.hasNext()) {
+        @NonNull final Group group = groups.next();
+
+        query.append(group.getExpression().replaceAll(":this", alias));
+        if (groups.hasNext()) query.append(", ");
+      }
+
+      return Optional.of(query);
+    }
+
+    return Optional.empty();
+  }
+
+  /**
    * Compile a typed query from this collection for a given selection.
    *
    * @param selection Expression to select.
    *
    * @return A typed query from this collection for a given selection.
    */
+  public static @NonNull CharSequence getQuery (
+    @NonNull final Collection<?> collection,
+    @NonNull final String selection
+  ) {
+    if (collection instanceof ModelCollection) {
+      return getQuery((ModelCollection<?>) collection, selection);
+    } else if (collection instanceof ModelAggregation) {
+      return getQuery((ModelAggregation<?>) collection, selection);
+    } else {
+      throw new Error("Unhandled collection type " + collection.getModelClass());
+    }
+  }
+
   public static @NonNull CharSequence getQuery (
     @NonNull final ModelCollection<?> modelCollection,
     @NonNull final String selection
@@ -235,11 +293,16 @@ public final class JPACollections
    * @return The parameters to bind to this collection query.
    */
   public static @NonNull Map<@NonNull String, @NonNull Object> getParameters (
-    @NonNull final ModelCollection<?> modelCollection
+    @NonNull final Collection<?> collection
   ) {
+    if (!(collection instanceof FilterableCollection)) return new HashMap<>();
+
+    @NonNull final FilterableCollection<?> filterableCollection =
+      (FilterableCollection<?>) collection;
+
     @NonNull final Map<@NonNull String, @NonNull Object> parameters = new HashMap<>();
 
-    @NonNull final Iterator<@NonNull Filter> filters = modelCollection.getFilters().iterator();
+    @NonNull final Iterator<@NonNull Filter> filters = filterableCollection.getFilters().iterator();
     int                                      index   = 0;
 
     while (filters.hasNext()) {
@@ -255,39 +318,6 @@ public final class JPACollections
     }
 
     return parameters;
-  }
-
-  /**
-   * @return The grouping clause of this query if any.
-   */
-  public static @NonNull Optional<CharSequence> getGroupingClause (
-    @NonNull final ModelAggregation<?> aggregation
-  ) {
-    return getGroupingClause(aggregation, aggregation.getEntityName());
-  }
-
-  /**
-   * @return The grouping clause of this query if any.
-   */
-  public static @NonNull Optional<CharSequence> getGroupingClause (
-    @NonNull final ModelAggregation<?> aggregation,
-    @NonNull final String alias
-  ) {
-    if (aggregation.isGrouped()) {
-      @NonNull final StringBuilder            query  = new StringBuilder();
-      @NonNull final Iterator<@NonNull Group> groups = aggregation.getGroups().iterator();
-
-      while (groups.hasNext()) {
-        @NonNull final Group group = groups.next();
-
-        query.append(group.getExpression().replaceAll(":this", alias));
-        if (groups.hasNext()) query.append(", ");
-      }
-
-      return Optional.of(query);
-    }
-
-    return Optional.empty();
   }
 
   public static @NonNull CharSequence getQuery (

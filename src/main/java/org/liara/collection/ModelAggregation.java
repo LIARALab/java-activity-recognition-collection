@@ -24,10 +24,10 @@ package org.liara.collection;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.com.google.common.collect.Iterables;
-import org.checkerframework.common.value.qual.MinLen;
 import org.liara.collection.operator.Composition;
 import org.liara.collection.operator.Operator;
+import org.liara.collection.operator.aggregate.AggregableCollection;
+import org.liara.collection.operator.aggregate.Aggregate;
 import org.liara.collection.operator.cursoring.Cursor;
 import org.liara.collection.operator.cursoring.CursorableCollection;
 import org.liara.collection.operator.filtering.Filter;
@@ -39,7 +39,10 @@ import org.liara.collection.operator.joining.JoinableCollection;
 import org.liara.collection.operator.ordering.Order;
 import org.liara.collection.operator.ordering.OrderableCollection;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 public class ModelAggregation<Entity>
   implements Collection<Entity>,
@@ -47,33 +50,31 @@ public class ModelAggregation<Entity>
              OrderableCollection<Entity>,
              FilterableCollection<Entity>,
              GroupableCollection<Entity>,
-             JoinableCollection<Entity>
+             JoinableCollection<Entity>,
+             AggregableCollection<Entity>
 {
   @NonNull
   private final ModelCollection<Entity> _groupedCollection;
 
   @NonNull
-  private final List<@NonNull Group> _groups;
+  private final Groups _groups;
 
   @NonNull
-  private final List<@NonNull Group> _unmodifiableGroups;
+  private final Aggregates _aggregates;
 
   /**
    * Create a new grouped collection from an existing entity collection and a list of groups.
    *
    * @param groupedCollection An existing entity collection to group.
-   * @param groups Groups to apply.
+   * @param builder A builder to use.
    */
   public ModelAggregation (
     @NonNull final ModelCollection<Entity> groupedCollection,
-    @NonNull @MinLen(1) final Iterable<@NonNull Group> groups
+    @NonNull final ModelAggregationBuilder builder
   ) {
     _groupedCollection = groupedCollection;
-
-    @NonNull final LinkedList<@NonNull Group> groupList = new LinkedList<>();
-    groups.forEach(groupList::addLast);
-    _groups = new ArrayList<>(groupList);
-    _unmodifiableGroups = Collections.unmodifiableList(_groups);
+    _groups = Objects.requireNonNull(builder.getGroups());
+    _aggregates = Objects.requireNonNull(builder.getAggregates());
   }
 
   /**
@@ -85,17 +86,8 @@ public class ModelAggregation<Entity>
     @NonNull final ModelAggregation<Entity> toCopy
   ) {
     _groupedCollection = toCopy.getGroupedCollection();
-    _groups = new ArrayList<>(toCopy.getGroups());
-    _unmodifiableGroups = Collections.unmodifiableList(_groups);
-  }
-
-  private ModelAggregation (
-    @NonNull final ModelAggregation<Entity> toCopy,
-    @NonNull final ModelCollection<Entity> groupedCollection
-  ) {
-    _groupedCollection = groupedCollection;
-    _groups = new ArrayList<>(toCopy.getGroups());
-    _unmodifiableGroups = Collections.unmodifiableList(_groups);
+    _groups = toCopy._groups;
+    _aggregates = toCopy._aggregates;
   }
 
   /**
@@ -122,16 +114,14 @@ public class ModelAggregation<Entity>
    * Return a new grouped collection like this one except that the new operate over another underlying entity
    * collection.
    *
-   * @param groupedCollection A collection to group like this one.
+   * @param collection A collection to group like this one.
    *
    * @return A grouped collection that group the given collection like this one.
    */
   public @NonNull ModelAggregation<Entity> setGroupedCollection (
-    @NonNull final ModelCollection<Entity> groupedCollection
+    @NonNull final ModelCollection<Entity> collection
   ) {
-    return new ModelAggregation<>(
-      this, groupedCollection
-    );
+    return getBuilder().aggregate(collection);
   }
 
   /**
@@ -139,7 +129,7 @@ public class ModelAggregation<Entity>
    */
   @Override
   public @NonNull ModelAggregation<Entity> setCursor (@NonNull final Cursor cursor) {
-    return new ModelAggregation<>(this, _groupedCollection.setCursor(cursor));
+    return getBuilder().aggregate(_groupedCollection.setCursor(cursor));
   }
 
   /**
@@ -155,7 +145,7 @@ public class ModelAggregation<Entity>
    */
   @Override
   public @NonNull ModelAggregation<Entity> addFilter (@NonNull final Filter filter) {
-    return new ModelAggregation<>(this, _groupedCollection.addFilter(filter));
+    return getBuilder().aggregate(_groupedCollection.addFilter(filter));
   }
 
   /**
@@ -163,7 +153,7 @@ public class ModelAggregation<Entity>
    */
   @Override
   public @NonNull ModelAggregation<Entity> removeFilter (@NonNull final Filter filter) {
-    return new ModelAggregation<>(this, _groupedCollection.removeFilter(filter));
+    return getBuilder().aggregate(_groupedCollection.removeFilter(filter));
   }
 
   /**
@@ -179,19 +169,28 @@ public class ModelAggregation<Entity>
    */
   @Override
   public @NonNull ModelAggregation<Entity> groupBy (@NonNull final Group group) {
-    return new ModelAggregation<>(
-      _groupedCollection,
-      Iterables.concat(_groups, Collections.singleton(group))
-    );
+    @NonNull final Groups nextGroups = _groups.groupBy(group);
+
+    if (nextGroups == _groups) {
+      return this;
+    } else {
+      @NonNull final ModelAggregationBuilder builder = getBuilder();
+      builder.setGroups(nextGroups);
+      return builder.aggregate(_groupedCollection);
+    }
   }
 
   @Override
   public @NonNull GroupableCollection<Entity> ungroup (@NonNull final Group group) {
-    @NonNull final List<Group> groups = new ArrayList<>(_groups);
-    groups.remove(group);
+    @NonNull final Groups nextGroups = _groups.remove(group);
 
-    return (groups.size() <= 0) ? getGroupedCollection()
-                                : new ModelAggregation<>(_groupedCollection, groups);
+    if (nextGroups == _groups) {
+      return this;
+    } else {
+      @NonNull final ModelAggregationBuilder builder = getBuilder();
+      builder.setGroups(nextGroups);
+      return builder.aggregate(_groupedCollection);
+    }
   }
 
   /**
@@ -199,7 +198,7 @@ public class ModelAggregation<Entity>
    */
   @Override
   public @NonNull List<@NonNull Group> getGroups () {
-    return _unmodifiableGroups;
+    return _groups.getGroups();
   }
 
   /**
@@ -208,12 +207,12 @@ public class ModelAggregation<Entity>
    */
   @Override
   public @NonNull ModelAggregation<Entity> orderBy (@NonNull final Order order) {
-    return new ModelAggregation<>(this, _groupedCollection.orderBy(order));
+    return getBuilder().aggregate(_groupedCollection.orderBy(order));
   }
 
   @Override
   public @NonNull ModelAggregation<Entity> removeOrder (@NonNull final Order order) {
-    return new ModelAggregation<>(this, _groupedCollection.removeOrder(order));
+    return getBuilder().aggregate(_groupedCollection.removeOrder(order));
   }
 
   /**
@@ -226,17 +225,17 @@ public class ModelAggregation<Entity>
 
   @Override
   public @NonNull ModelAggregation<Entity> join (@NonNull final Join<?> relation) {
-    return new ModelAggregation<>(this, _groupedCollection.join(relation));
+    return getBuilder().aggregate(_groupedCollection.join(relation));
   }
 
   @Override
   public @NonNull ModelAggregation<Entity> disjoin (@NonNull final Join<?> relation) {
-    return new ModelAggregation<>(this, _groupedCollection.disjoin(relation));
+    return getBuilder().aggregate(_groupedCollection.disjoin(relation));
   }
 
   @Override
   public @NonNull ModelAggregation<Entity> disjoin (@NonNull final String name) {
-    return new ModelAggregation<>(this, _groupedCollection.disjoin(name));
+    return getBuilder().aggregate(_groupedCollection.disjoin(name));
   }
 
   @Override
@@ -251,12 +250,54 @@ public class ModelAggregation<Entity>
 
   @Override
   public @NonNull Operator getOperator () {
-    return Composition.of(_groupedCollection.getOperator(), Composition.of(_groups.toArray(new Operator[0])));
+    return Composition.of(
+      _groupedCollection.getOperator(),
+      Composition.of(_groups.getGroups()),
+      Composition.of(_aggregates.getAggregates())
+    );
+  }
+
+  private @NonNull ModelAggregationBuilder getBuilder () {
+    @NonNull final ModelAggregationBuilder builder = new ModelAggregationBuilder();
+    builder.setGroups(_groups);
+    builder.setAggregates(_aggregates);
+    return builder;
+  }
+
+  @Override
+  public @NonNull AggregableCollection<Entity> aggregate (final @NonNull Aggregate aggregate) {
+    @NonNull final Aggregates aggregates = _aggregates.aggregate(aggregate);
+
+    if (aggregates == _aggregates) {
+      return this;
+    } else {
+      @NonNull final ModelAggregationBuilder builder = getBuilder();
+      builder.setAggregates(aggregates);
+      return builder.aggregate(_groupedCollection);
+    }
+  }
+
+  @Override
+  public @NonNull AggregableCollection<Entity> remove (final @NonNull Aggregate aggregate) {
+    @NonNull final Aggregates aggregates = _aggregates.remove(aggregate);
+
+    if (aggregates == _aggregates) {
+      return this;
+    } else {
+      @NonNull final ModelAggregationBuilder builder = getBuilder();
+      builder.setAggregates(aggregates);
+      return builder.aggregate(_groupedCollection);
+    }
+  }
+
+  @Override
+  public @NonNull List<@NonNull Aggregate> getAggregations () {
+    return _aggregates.getAggregates();
   }
 
   @Override
   public int hashCode () {
-    return Objects.hash(_groupedCollection, _groups);
+    return Objects.hash(_groupedCollection, _groups, _aggregates);
   }
 
   @Override
@@ -268,7 +309,8 @@ public class ModelAggregation<Entity>
       @NonNull final ModelAggregation<?> otherCollection = (ModelAggregation<?>) other;
 
       return Objects.equals(otherCollection.getGroupedCollection(), _groupedCollection) &&
-             Objects.equals(otherCollection.getGroups(), _groups);
+             Objects.equals(otherCollection._groups, _groups) &&
+             Objects.equals(otherCollection._aggregates, _aggregates);
     }
 
     return false;

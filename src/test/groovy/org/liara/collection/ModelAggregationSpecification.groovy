@@ -24,7 +24,7 @@ package org.liara.collection
 
 import org.liara.collection.operator.cursoring.Cursor
 import org.liara.collection.operator.filtering.Filter
-import org.liara.collection.operator.grouping.Group
+import org.liara.collection.operator.grouping.ExpressionGroup
 import org.liara.collection.operator.ordering.Order
 import org.mockito.Mockito
 
@@ -36,10 +36,10 @@ class ModelAggregationSpecification
     final ModelCollection<Object> collection = Mockito.mock(ModelCollection.class)
 
     and: "a list of group operators"
-    final Group[] groups = [
-      Group.expression(":this.first"),
-      Group.expression(":this.second"),
-      Group.expression(":this.last")
+    final ExpressionGroup[] groups = [
+      ExpressionGroup.expression(":this.first"),
+      ExpressionGroup.expression(":this.second"),
+      ExpressionGroup.expression(":this.last")
     ]
 
     when: "we instantiate a grouped JPA entity collection from the given collection and the given list of groups"
@@ -57,10 +57,10 @@ class ModelAggregationSpecification
     final ModelCollection<Object> collection = Mockito.mock(ModelCollection.class)
 
     and: "a list of group operators"
-    final Group[] groups = [
-      Group.expression(":this.first"),
-      Group.expression(":this.second"),
-      Group.expression(":this.last")
+    final ExpressionGroup[] groups = [
+      ExpressionGroup.expression(":this.first"),
+      ExpressionGroup.expression(":this.second"),
+      ExpressionGroup.expression(":this.last")
     ]
 
     and: "a source grouped JPA entity collection"
@@ -83,7 +83,7 @@ class ModelAggregationSpecification
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
     final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, [Group.expression("")]
+      collection, [ExpressionGroup.expression("")]
     )
 
     when: "we get the queried entity name from the grouped collection"
@@ -101,7 +101,7 @@ class ModelAggregationSpecification
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
     final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, [Group.expression("")]
+      collection, [ExpressionGroup.expression("")]
     )
 
     when: "we get the entity type from the grouped collection"
@@ -119,7 +119,7 @@ class ModelAggregationSpecification
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
     final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, [Group.expression("")]
+      collection, [ExpressionGroup.expression("")]
     )
 
     when: "we get the cursor from the grouped collection"
@@ -137,7 +137,7 @@ class ModelAggregationSpecification
 
     and: "a grouped JPA entity collection that wrap the first entity collection"
     final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      first, [Group.expression("")]
+      first, [ExpressionGroup.expression("")]
     )
 
     when: "we set the grouped collection to the second one"
@@ -159,7 +159,7 @@ class ModelAggregationSpecification
 
     and: "a grouped JPA entity collection that wrap the first entity collection"
     final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      first, [Group.expression("")]
+      first, [ExpressionGroup.expression("")]
     )
 
     when: "we set the cursor of the grouped collection"
@@ -183,7 +183,7 @@ class ModelAggregationSpecification
 
     and: "a grouped JPA entity collection that wrap the first entity collection"
     final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      first, [Group.expression("")]
+      first, [ExpressionGroup.expression("")]
     )
 
     when: "we add a filter to the grouped collection"
@@ -207,7 +207,7 @@ class ModelAggregationSpecification
 
     and: "a grouped JPA entity collection that wrap the first entity collection"
     final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      first, [Group.expression("")]
+      first, [ExpressionGroup.expression("")]
     )
 
     when: "we remove a filter of the grouped collection"
@@ -230,7 +230,7 @@ class ModelAggregationSpecification
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
     final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, [Group.expression("")]
+      collection, [ExpressionGroup.expression("")]
     )
 
     when: "we get all filters of the grouped collection"
@@ -247,18 +247,18 @@ class ModelAggregationSpecification
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
     final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, [Group.expression(":this.first")]
+      collection, [ExpressionGroup.expression(":this.first")]
     )
 
     when: "we group the collection"
-    final ModelAggregation<Object> result = groupedCollection.groupBy(Group.expression(":this.second"))
+    final ModelAggregation<Object> result = groupedCollection.groupBy(ExpressionGroup.expression(":this.second"))
 
     then: "we expect to get an updated version of the collection"
     !result.is(groupedCollection)
     result.groups.size() == 2
     groupedCollection.groups.size() == 1
-    groupedCollection.groups == [Group.expression(":this.first")]
-    result.groups == [Group.expression(":this.first"), Group.expression(":this.second")]
+    groupedCollection.groups == [ExpressionGroup.expression(":this.first")]
+    result.groups == [ExpressionGroup.expression(":this.first"), ExpressionGroup.expression(":this.second")]
   }
 
   def "it allows you to order the underlying query" () {
@@ -270,7 +270,7 @@ class ModelAggregationSpecification
 
     and: "a grouped JPA entity collection that wrap the first entity collection"
     final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      first, [Group.expression("")]
+      first, [ExpressionGroup.expression("")]
     )
 
     when: "we order the grouped collection"
@@ -299,7 +299,7 @@ class ModelAggregationSpecification
 
     and: "a grouped JPA entity collection that wrap the given entity collection"
     final ModelAggregation<Object> groupedCollection = new ModelAggregation<>(
-      collection, [Group.expression("")]
+      collection, [ExpressionGroup.expression("")]
     )
 
     when: "we get all orders from the grouped collection"
@@ -316,10 +316,10 @@ class ModelAggregationSpecification
     final ModelCollection<Object> second = Mockito.mock(ModelCollection.class)
 
     and: "some groups operators"
-    final List<Group> groups = [
-      Group.expression(":this.first"),
-      Group.expression(":this.second"),
-      Group.expression(":this.third")
+    final List<ExpressionGroup> groups = [
+      ExpressionGroup.expression(":this.first"),
+      ExpressionGroup.expression(":this.second"),
+      ExpressionGroup.expression(":this.third")
     ]
 
     expect: 'equals operator to behave accordingly with the standards'
@@ -343,10 +343,10 @@ class ModelAggregationSpecification
     final ModelCollection<Object> second = Mockito.mock(ModelCollection.class)
 
     and: "some groups operators"
-    final List<Group> groups = [
-      Group.expression(":this.first"),
-      Group.expression(":this.second"),
-      Group.expression(":this.third")
+    final List<ExpressionGroup> groups = [
+      ExpressionGroup.expression(":this.first"),
+      ExpressionGroup.expression(":this.second"),
+      ExpressionGroup.expression(":this.third")
     ]
 
     expect: 'hashcode operator to behave accordingly with the standards'

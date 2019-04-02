@@ -26,7 +26,7 @@ import org.liara.collection.operator.Composition
 import org.liara.collection.operator.Operator
 import org.liara.collection.operator.cursoring.Cursor
 import org.liara.collection.operator.filtering.Filter
-import org.liara.collection.operator.grouping.Group
+import org.liara.collection.operator.grouping.ExpressionGroup
 import org.liara.collection.operator.grouping.GroupableCollection
 import org.liara.collection.operator.ordering.Order
 
@@ -230,7 +230,7 @@ class ModelCollectionSpecification
     ).apply(new ModelCollection<>(Object.class)) as ModelCollection<Object>
 
     and: 'a group operator'
-    final Group group = Group.expression(":this.type")
+    final ExpressionGroup group = ExpressionGroup.expression(":this.type")
 
     when: 'we apply a grouping operator to the collection'
     final Collection result = group.apply(collection)

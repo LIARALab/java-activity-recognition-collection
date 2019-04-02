@@ -25,6 +25,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.operator.Composition;
 import org.liara.collection.operator.Operator;
+import org.liara.collection.operator.aggregate.AggregableCollection;
+import org.liara.collection.operator.aggregate.Aggregate;
 import org.liara.collection.operator.cursoring.Cursor;
 import org.liara.collection.operator.cursoring.CursorableCollection;
 import org.liara.collection.operator.filtering.Filter;
@@ -51,10 +53,15 @@ public class ModelCollection<Entity>
              OrderableCollection<Entity>,
              FilterableCollection<Entity>,
              GroupableCollection<Entity>,
-             JoinableCollection<Entity>
+             JoinableCollection<Entity>,
+             AggregableCollection<Entity>
 {
   @NonNull
   private static final List<@NonNull Group> EMPTY_GROUP_LIST = Collections.unmodifiableList(
+    Collections.emptyList());
+
+  @NonNull
+  private static final List<@NonNull Aggregate> EMPTY_AGGREGATE_LIST = Collections.unmodifiableList(
     Collections.emptyList());
 
   @NonNull
@@ -71,6 +78,10 @@ public class ModelCollection<Entity>
 
   @NonNull
   private final Class<Entity> _modelClass;
+
+  public static <T> @NonNull ModelCollection<T> create (@NonNull final Class<T> modelClass) {
+    return new ModelCollection<>(modelClass);
+  }
 
   /**
    * Create a collection of all instances of a given model.
@@ -252,7 +263,10 @@ public class ModelCollection<Entity>
    */
   @Override
   public @NonNull ModelAggregation<Entity> groupBy (@NonNull final Group group) {
-    return new ModelAggregation<>(this, Collections.singletonList(group));
+    @NonNull final ModelAggregationBuilder builder = new ModelAggregationBuilder();
+    builder.setGroups(new Groups(group));
+    builder.setAggregates(Aggregates.EMPTY);
+    return builder.aggregate(this);
   }
 
   @Override
@@ -307,6 +321,24 @@ public class ModelCollection<Entity>
   @Override
   public @NonNull Map<@NonNull String, @NonNull Join> getJoins () {
     return _joins.getJoins();
+  }
+
+  @Override
+  public @NonNull AggregableCollection<Entity> aggregate (final @NonNull Aggregate aggregate) {
+    @NonNull final ModelAggregationBuilder builder = new ModelAggregationBuilder();
+    builder.setGroups(Groups.EMPTY);
+    builder.setAggregates(new Aggregates(aggregate));
+    return builder.aggregate(this);
+  }
+
+  @Override
+  public @NonNull AggregableCollection<Entity> remove (final @NonNull Aggregate aggregate) {
+    return this;
+  }
+
+  @Override
+  public @NonNull List<@NonNull Aggregate> getAggregations () {
+    return EMPTY_AGGREGATE_LIST;
   }
 
   @Override

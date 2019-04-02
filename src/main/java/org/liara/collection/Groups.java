@@ -25,79 +25,79 @@ package org.liara.collection;
 import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.liara.collection.operator.ordering.Order;
+import org.liara.collection.operator.grouping.Group;
 
 import java.util.Iterator;
 import java.util.Objects;
 
-public class Orderings
-  implements Iterable<@NonNull Order>
+public class Groups
+  implements Iterable<@NonNull Group>
 {
   @NonNull
-  public static final Orderings EMPTY = new Orderings();
+  public static final Groups EMPTY = new Groups();
 
   @NonNull
-  private final ImmutableList<@NonNull Order> _orderings;
+  private final ImmutableList<@NonNull Group> _groups;
 
-  public Orderings (@NonNull final Order... orders) {
-    _orderings = ImmutableList.copyOf(orders);
+  public Groups (@NonNull final Group... groups) {
+    _groups = ImmutableList.copyOf(groups);
   }
 
-  public Orderings (@NonNull final Iterator<@NonNull Order> orders) {
-    _orderings = ImmutableList.copyOf(orders);
+  public Groups (@NonNull final Iterator<@NonNull Group> groups) {
+    _groups = ImmutableList.copyOf(groups);
   }
 
-  public Orderings (final java.util.@NonNull Collection<@NonNull Order> orders) {
-    _orderings = ImmutableList.copyOf(orders);
+  public Groups (final java.util.@NonNull Collection<@NonNull Group> groups) {
+    _groups = ImmutableList.copyOf(groups);
   }
 
-  public Orderings (@NonNull final ImmutableList<@NonNull Order> orders) {
-    _orderings = orders;
+  public Groups (@NonNull final ImmutableList<@NonNull Group> groups) {
+    _groups = groups;
   }
 
-  public Orderings (@NonNull final Orderings toCopy) {
-    _orderings = toCopy.getOrderings();
+  public Groups (@NonNull final Groups toCopy) {
+    _groups = toCopy.getGroups();
   }
 
-  public @NonNull Orderings orderBy (@NonNull final Order order) {
-    if (_orderings.contains(order)) {
+  public @NonNull Groups groupBy (@NonNull final Group group) {
+    if (_groups.contains(group)) {
       return this;
     } else {
-      final ImmutableList.@NonNull Builder<@NonNull Order> builder = ImmutableList.builder();
-      builder.addAll(_orderings);
-      builder.add(order);
+      final ImmutableList.@NonNull Builder<@NonNull Group> builder = ImmutableList.builder();
+      builder.addAll(_groups);
+      builder.add(group);
 
-      return new Orderings(builder.build());
+      return new Groups(builder.build());
     }
   }
 
-  public @NonNull Orderings remove (@NonNull final Order order) {
-    if (_orderings.contains(order)) {
-      final ImmutableList.@NonNull Builder<@NonNull Order> builder = ImmutableList.builder();
+  public @NonNull Groups remove (@NonNull final Group group) {
+    if (_groups.contains(group)) {
+      final ImmutableList.@NonNull Builder<@NonNull Group> builder = ImmutableList.builder();
 
-      for (@NonNull final Order toAdd : _orderings) {
-        if (!order.equals(toAdd)) {
+      for (@NonNull final Group toAdd : _groups) {
+        if (!group.equals(toAdd)) {
           builder.add(toAdd);
         }
       }
 
-      return new Orderings(builder.build());
+      return new Groups(builder.build());
     } else {
       return this;
     }
   }
 
-  public @NonNull Orderings clear () {
-    return Orderings.EMPTY;
+  public @NonNull Groups clear () {
+    return Groups.EMPTY;
   }
 
   @Override
-  public Iterator<@NonNull Order> iterator () {
-    return _orderings.iterator();
+  public Iterator<@NonNull Group> iterator () {
+    return _groups.iterator();
   }
 
-  public @NonNull ImmutableList<@NonNull Order> getOrderings () {
-    return _orderings;
+  public @NonNull ImmutableList<@NonNull Group> getGroups () {
+    return _groups;
   }
 
   @Override
@@ -105,10 +105,10 @@ public class Orderings
     if (other == null) return false;
     if (other == this) return true;
 
-    if (other instanceof Orderings) {
-      @NonNull final Orderings otherOrderings = (Orderings) other;
+    if (other instanceof Groups) {
+      @NonNull final Groups otherGroups = (Groups) other;
 
-      return Objects.equals(_orderings, otherOrderings.getOrderings());
+      return Objects.equals(_groups, otherGroups.getGroups());
     }
 
     return false;
@@ -116,6 +116,6 @@ public class Orderings
 
   @Override
   public int hashCode () {
-    return Objects.hash(_orderings);
+    return Objects.hash(_groups);
   }
 }
