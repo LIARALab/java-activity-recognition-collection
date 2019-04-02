@@ -71,7 +71,7 @@ public class JoinAggregate
 
   @Override
   public @NonNull String getExpression () {
-    return _group.getExpression();
+    return _group.getExpression().replace(":this", _join.identifier());
   }
 
   public @NonNull Join getJoin () {
