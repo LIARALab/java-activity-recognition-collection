@@ -24,7 +24,6 @@ package org.liara.collection.operator.filtering;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.liara.collection.operator.joining.Join;
 import org.liara.collection.operator.joining.JoinableOperator;
 
 import java.util.Collections;
@@ -110,11 +109,6 @@ public class ExpressionFilter
   @Override
   public @NonNull Map<@NonNull String, @NonNull Object> getParameters () {
     return Collections.unmodifiableMap(_parameters);
-  }
-
-  @Override
-  public @NonNull Filter join (@NonNull final Join join) {
-    return new JoinFilter(join, this);
   }
 
   /**

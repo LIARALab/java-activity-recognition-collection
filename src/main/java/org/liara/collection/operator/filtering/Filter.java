@@ -28,11 +28,12 @@ import org.liara.collection.Collection;
 import org.liara.collection.ModelCollection;
 import org.liara.collection.operator.Operator;
 import org.liara.collection.operator.joining.Join;
+import org.liara.collection.operator.joining.JoinableOperator;
 
 import java.util.Map;
 
 public interface Filter
-       extends Operator
+  extends Operator, JoinableOperator
 {
   static @NonNull Filter expression (@NonNull final String expression) {
     return new ExpressionFilter(expression);
@@ -53,6 +54,11 @@ public interface Filter
     }
 
     return input;
+  }
+
+  @Override
+  default @NonNull Operator join (@NonNull final Join join) {
+    return new JoinFilter(join, this);
   }
 
   @NonNull String getExpression ();

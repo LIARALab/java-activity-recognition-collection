@@ -26,13 +26,15 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.ModelCollection;
 import org.liara.collection.jpa.JPACollections;
+import org.liara.collection.operator.joining.JoinableOperator;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ExistsFilter
-  implements Filter
+  implements Filter,
+             JoinableOperator
 {
   @NonNull
   private final ModelCollection _collection;
@@ -108,9 +110,9 @@ public class ExistsFilter
 
   @Override
   public @NonNull Filter setParameter (
-    @NonNull final String name, @Nullable final Object value
-  )
-  {
+    @NonNull final String name,
+    @Nullable final Object value
+  ) {
     @NonNull final Map<String, Object> result = new HashMap<>(_parameters);
 
     if (value == null) {
