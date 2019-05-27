@@ -154,13 +154,13 @@ public final class JPACollections
         );
 
         if (filters.hasNext()) {
-          query.append(" AND ");
+          query.append(") AND (");
         }
 
         namespacer.next();
       }
 
-      return Optional.of(query);
+      return Optional.of("(" + query + ")");
     }
 
     return Optional.empty();
