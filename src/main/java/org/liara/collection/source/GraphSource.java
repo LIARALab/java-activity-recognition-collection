@@ -19,24 +19,10 @@
  * ARISING  FROM,  OUT  OF OR  IN  CONNECTION  WITH THE  SOFTWARE OR  THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.liara.collection;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.liara.collection.operator.Operator;
+package org.liara.collection.source;
 
-/**
- * A collection of data instances.
- */
-public interface Collection
+public interface GraphSource
+  extends Source
 {
-  /**
-   * Apply an operator on this collection and return the resulting collection.
-   *
-   * @param operator An operator to apply.
-   *
-   * @return A collection that is the result of this operation over this collection.
-   */
-  default @NonNull Collection apply (@NonNull final Operator operator) {
-    return operator.apply(this);
-  }
 }

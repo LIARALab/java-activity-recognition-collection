@@ -23,22 +23,18 @@ package org.liara.collection.operator.ordering;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.liara.collection.operator.Operator;
-import org.liara.collection.operator.joining.Join;
-import org.liara.collection.operator.joining.JoinableOperator;
+import org.liara.expression.Expression;
 
-import javax.persistence.metamodel.Attribute;
 import java.util.Objects;
 
 /**
  * An operator that describe a given way to ordering fields.
  */
 public class ExpressionOrder
-  implements Order,
-             JoinableOperator
+  implements Order
 {
   @NonNull
-  private final String _expression;
+  private final Expression<?> _expression;
 
   @NonNull
   private final OrderingDirection _direction;
@@ -49,23 +45,9 @@ public class ExpressionOrder
    * @param expression A expression to order.
    */
   public ExpressionOrder (
-    @NonNull final String expression
-  )
-  {
+    @NonNull final Expression<?> expression
+  ) {
     _expression = expression;
-    _direction = OrderingDirection.ASCENDING;
-  }
-
-  /**
-   * Create a new ascending ordering operation for a given expression.
-   *
-   * @param field A expression to order.
-   */
-  public ExpressionOrder (
-    @NonNull final Attribute<?, ?> field
-  )
-  {
-    _expression = ":this." + field.getName();
     _direction = OrderingDirection.ASCENDING;
   }
 
@@ -76,24 +58,10 @@ public class ExpressionOrder
    * @param direction  An ordering direction.
    */
   public ExpressionOrder (
-    @NonNull final String expression, @NonNull final OrderingDirection direction
-  )
-  {
+    @NonNull final Expression<?> expression,
+    @NonNull final OrderingDirection direction
+  ) {
     _expression = expression;
-    _direction = direction;
-  }
-
-  /**
-   * Create a new ordering operation for a given expression.
-   *
-   * @param field     A expression to order.
-   * @param direction An ordering direction.
-   */
-  public ExpressionOrder (
-    @NonNull final Attribute<?, ?> field, @NonNull final OrderingDirection direction
-  )
-  {
-    _expression = field.getName();
     _direction = direction;
   }
 
@@ -110,16 +78,11 @@ public class ExpressionOrder
     _direction = toCopy.getDirection();
   }
 
-  @Override
-  public @NonNull Operator join (@NonNull final Join join) {
-    return new JoinOrder(join, this);
-  }
-
   /**
    * @return The expression to order.
    */
   @Override
-  public @NonNull String getExpression () {
+  public @NonNull Expression<?> getExpression () {
     return _expression;
   }
 
@@ -130,19 +93,8 @@ public class ExpressionOrder
    *
    * @return A new ordering operator instance based on this one with another ordered expression.
    */
-  public @NonNull ExpressionOrder setExpression (@NonNull final String expression) {
+  public @NonNull ExpressionOrder setExpression (@NonNull final Expression<?> expression) {
     return new ExpressionOrder(expression, _direction);
-  }
-
-  /**
-   * Return a new ordering operator instance based on this one with another ordered expression.
-   *
-   * @param field The new expression to order.
-   *
-   * @return A new ordering operator instance based on this one with another ordered expression.
-   */
-  public @NonNull ExpressionOrder setField (@NonNull final Attribute<?, ?> field) {
-    return new ExpressionOrder(field, _direction);
   }
 
   /**
@@ -165,22 +117,11 @@ public class ExpressionOrder
     return new ExpressionOrder(_expression, direction);
   }
 
-  /**
-   * Alias of ExpressionOrder#setDirection(OrderingDirection.ASCENDING).
-   *
-   * @see ExpressionOrder#setDirection(OrderingDirection)
-   */
   @Override
   public @NonNull ExpressionOrder ascending () {
     return setDirection(OrderingDirection.ASCENDING);
   }
 
-
-  /**
-   * Alias of ExpressionOrder#setDirection(OrderingDirection.DESCENDING).
-   *
-   * @see ExpressionOrder#setDirection(OrderingDirection)
-   */
   @Override
   public @NonNull ExpressionOrder descending () {
     return setDirection(OrderingDirection.DESCENDING);

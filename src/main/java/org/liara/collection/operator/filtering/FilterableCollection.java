@@ -27,12 +27,12 @@ import org.liara.collection.Collection;
 
 import java.util.Set;
 
-public interface FilterableCollection<Model>
-  extends Collection<Model>
+public interface FilterableCollection
+  extends Collection
 {
-  @NonNull FilterableCollection<Model> addFilter (@NonNull final Filter filter);
+  @NonNull FilterableCollection addFilter (@NonNull final Filter filter);
 
-  @NonNull FilterableCollection<Model> removeFilter (@NonNull final Filter filter);
+  @NonNull FilterableCollection removeFilter (@NonNull final Filter filter);
 
   @NonNull Set<@NonNull Filter> getFilters ();
 

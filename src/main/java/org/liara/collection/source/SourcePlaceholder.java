@@ -20,39 +20,16 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.liara.collection.jpa;
+package org.liara.collection.source;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.liara.expression.Placeholder;
 
-import java.util.function.Function;
-import java.util.regex.MatchResult;
-import java.util.regex.Pattern;
-
-public class FilterNamespacer
-  implements Function<@NonNull MatchResult, @NonNull String>
+public interface SourcePlaceholder<Type>
+  extends Placeholder<Type>
 {
-  @NonNull
-  public static final Pattern PATTERN = Pattern.compile(":([a-zA-Z0-9_]+)");
-  @NonNull
-  private final       String  _entityName;
-  private             int     _index  = 0;
-
-  public FilterNamespacer (@NonNull final String entityName) {
-    _entityName = entityName;
-  }
-
-  public void next () {
-    _index += 1;
-  }
-
-  @Override
-  public @NonNull String apply (@NonNull final MatchResult result) {
-    if (result.group().startsWith(":this")) {
-      return _entityName + result.group().substring(5);
-    } else if (result.group().startsWith(":super")) {
-      return result.group();
-    } else {
-      return ":filter" + String.valueOf(_index) + "_" + result.group(1);
-    }
-  }
+  /**
+   * @return Return the source of this placeholder.
+   */
+  @NonNull Source getSource ();
 }

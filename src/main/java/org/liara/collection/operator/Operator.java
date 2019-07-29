@@ -51,5 +51,5 @@ public interface Operator {
    *
    * @return The result of the operation.
    */
-  <Model> @NonNull Collection<?> apply (@NonNull final Collection<Model> input);
+  @NonNull Collection apply (@NonNull final Collection input);
 }

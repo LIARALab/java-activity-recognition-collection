@@ -23,14 +23,38 @@
 package org.liara.collection.operator.grouping;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.liara.collection.Collection;
 import org.liara.collection.operator.Operator;
+import org.liara.expression.Expression;
 
 public interface Group
   extends Operator
 {
-  static @NonNull Group expression (@NonNull final String expression) {
+  /**
+   * Create a new grouping operation of a given expression.
+   *
+   * @param expression An expression to group.
+   *
+   * @return A new grouping operation of a given expression.
+   */
+  static @NonNull Group expression (@NonNull final Expression<?> expression) {
     return new ExpressionGroup(expression);
   }
 
-  @NonNull String getExpression ();
+  /**
+   * @see Operator#apply(Collection)
+   */
+  @Override
+  default @NonNull Collection apply (@NonNull final Collection input) {
+    if (input instanceof GroupableCollection) {
+      return ((GroupableCollection) input).groupBy(this);
+    }
+
+    return input;
+  }
+
+  /**
+   * @return The expression that is grouped.
+   */
+  @NonNull Expression<?> getExpression ();
 }

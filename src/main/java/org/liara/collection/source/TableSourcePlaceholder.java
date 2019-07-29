@@ -19,24 +19,64 @@
  * ARISING  FROM,  OUT  OF OR  IN  CONNECTION  WITH THE  SOFTWARE OR  THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.liara.collection;
+
+package org.liara.collection.source;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.liara.collection.operator.Operator;
+import org.liara.data.graph.Column;
+import org.liara.data.primitive.Primitive;
+import org.liara.expression.Expression;
+import org.liara.expression.Placeholder;
+import org.liara.support.view.View;
 
-/**
- * A collection of data instances.
- */
-public interface Collection
+public class TableSourcePlaceholder<Type>
+  implements SourcePlaceholder<Type>
 {
+  @NonNull
+  private static final View<@NonNull Expression> CHILDREN = View.readonly(Expression.class);
+
+  @NonNull
+  private final TableSource _source;
+
+  @NonNull
+  private final Column<Type> _column;
+
+  public TableSourcePlaceholder (
+    @NonNull final TableSource source,
+    @NonNull final Column<Type> column
+  ) {
+    _source = source;
+    _column = column;
+  }
+
   /**
-   * Apply an operator on this collection and return the resulting collection.
-   *
-   * @param operator An operator to apply.
-   *
-   * @return A collection that is the result of this operation over this collection.
+   * @see SourcePlaceholder#getSource()
    */
-  default @NonNull Collection apply (@NonNull final Operator operator) {
-    return operator.apply(this);
+  @Override
+  public @NonNull TableSource getSource () {
+    return _source;
+  }
+
+  /**
+   * @return The table column's targeted by this placeholder.
+   */
+  public @NonNull Column<Type> getColumn () {
+    return _column;
+  }
+
+  /**
+   * @see Placeholder#getResultType()
+   */
+  @Override
+  public @NonNull Primitive<Type> getResultType () {
+    return _column.getType();
+  }
+
+  /**
+   * @see Expression#getChildren()
+   */
+  @Override
+  public @NonNull View<Expression> getChildren () {
+    return CHILDREN;
   }
 }

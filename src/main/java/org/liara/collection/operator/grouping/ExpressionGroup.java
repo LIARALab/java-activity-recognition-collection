@@ -24,55 +24,53 @@ package org.liara.collection.operator.grouping;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.liara.collection.Collection;
-import org.liara.collection.operator.Operator;
-import org.liara.collection.operator.joining.Join;
-import org.liara.collection.operator.joining.JoinableOperator;
+import org.liara.expression.Expression;
 
 import java.util.Objects;
 
 public class ExpressionGroup
-  implements Group, JoinableOperator
+  implements Group
 {
   @NonNull
-  private final String _expression;
+  private final Expression<?> _expression;
 
-  public ExpressionGroup (@NonNull final String expression) {
+  /**
+   * Instantiate a new grouping operation of a given expression.
+   *
+   * @param expression An expression to group.
+   */
+  public ExpressionGroup (@NonNull final Expression<?> expression) {
     _expression = expression;
   }
 
+  /**
+   * Instantiate a new grouping operation that is a copy of another one.
+   *
+   * @param toCopy A grouping operation to copy.
+   */
   public ExpressionGroup (@NonNull final ExpressionGroup toCopy) {
     _expression = toCopy.getExpression();
   }
 
+  /**
+   * @see Group#getExpression()
+   */
   @Override
-  public @NonNull Operator join (@NonNull final Join join) {
-    return new JoinGroup(join, this);
-  }
-
-  @Override
-  public @NonNull Collection apply (@NonNull final Collection input) {
-    if (input instanceof GroupableCollection) {
-      return ((GroupableCollection) input).groupBy(this);
-    }
-
-    return input;
-  }
-
-  @Override
-  public @NonNull String getExpression () {
+  public @NonNull Expression<?> getExpression () {
     return _expression;
   }
 
-  public @NonNull ExpressionGroup setExpression (@NonNull final String expression) {
-    return new ExpressionGroup(expression);
-  }
-
+  /**
+   * @see Object#hashCode()
+   */
   @Override
   public int hashCode () {
     return Objects.hash(_expression);
   }
 
+  /**
+   * @see Object#equals(Object)
+   */
   @Override
   public boolean equals (@Nullable final Object other) {
     if (other == null) return false;

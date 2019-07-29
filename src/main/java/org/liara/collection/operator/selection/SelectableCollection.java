@@ -19,24 +19,26 @@
  * ARISING  FROM,  OUT  OF OR  IN  CONNECTION  WITH THE  SOFTWARE OR  THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.liara.collection;
+
+package org.liara.collection.operator.selection;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.liara.collection.operator.Operator;
+import org.liara.collection.Collection;
 
-/**
- * A collection of data instances.
- */
-public interface Collection
+import java.util.List;
+
+public interface SelectableCollection
+  extends Collection
 {
-  /**
-   * Apply an operator on this collection and return the resulting collection.
-   *
-   * @param operator An operator to apply.
-   *
-   * @return A collection that is the result of this operation over this collection.
-   */
-  default @NonNull Collection apply (@NonNull final Operator operator) {
-    return operator.apply(this);
+  @NonNull SelectableCollection select (@NonNull final Selection selection);
+
+  @NonNull SelectableCollection deselect (@NonNull final Selection selection);
+
+  @NonNull Selection<?> getSelection (@NonNull final String name);
+
+  @NonNull List<@NonNull Selection> getSelections ();
+
+  default boolean hasSelections () {
+    return !getSelections().isEmpty();
   }
 }

@@ -174,9 +174,9 @@ public class Cursor implements Operator
   /**
    * @see Operator#apply(Operator)
    */
-  public <Model> @NonNull Collection<Model> apply (@NonNull final Collection<Model> collection) {
+  public @NonNull Collection apply (@NonNull final Collection collection) {
     if (collection instanceof CursorableCollection) {
-      return ((CursorableCollection<Model>) collection).setCursor(this);
+      return ((CursorableCollection) collection).setCursor(this);
     }
 
     return collection;

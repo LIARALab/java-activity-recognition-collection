@@ -23,51 +23,44 @@
 package org.liara.collection.operator.filtering;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
-import org.liara.collection.ModelCollection;
 import org.liara.collection.operator.Operator;
-import org.liara.collection.operator.joining.Join;
-import org.liara.collection.operator.joining.JoinableOperator;
-
-import java.util.Map;
+import org.liara.expression.Expression;
 
 public interface Filter
-  extends Operator, JoinableOperator
+  extends Operator
 {
-  static @NonNull Filter expression (@NonNull final String expression) {
-    return new ExpressionFilter(expression);
+  /**
+   * Return a new filtering operation based upon the given predicate.
+   *
+   * @param predicate A predicate to use for filtering.
+   *
+   * @return A new filtering operation based upon the given predicate.
+   */
+  static @NonNull Filter expression (@NonNull final Expression<@NonNull Boolean> predicate) {
+    return new ExpressionFilter(predicate);
   }
 
-  static @NonNull Filter exists (@NonNull final ModelCollection collection) {
-    return new ExistsFilter(collection);
-  }
+  /*
+    static @NonNull Filter exists (@NonNull final ModelCollection collection) {
+      return new ExistsFilter(collection);
+    }
+  */
 
-  static @NonNull Filter join (@NonNull final Join join, @NonNull final Filter filter) {
-    return new JoinFilter(join, filter);
-  }
-
+  /**
+   * @see Operator#apply(Collection)
+   */
   @Override
-  default <Model> @NonNull Collection<Model> apply (@NonNull final Collection<Model> input) {
+  default @NonNull Collection apply (@NonNull final Collection input) {
     if (input instanceof FilterableCollection) {
-      return ((FilterableCollection<Model>) input).addFilter(this);
+      return ((FilterableCollection) input).addFilter(this);
     }
 
     return input;
   }
 
-  @Override
-  default @NonNull Operator join (@NonNull final Join join) {
-    return new JoinFilter(join, this);
-  }
-
-  @NonNull String getExpression ();
-
-  @NonNull Filter setParameter (@NonNull final String name, @Nullable final Object value);
-
-  @NonNull Filter setParameters (@NonNull final Map<@NonNull String, @NonNull Object> parameters);
-
-  @NonNull Filter removeParameter (@NonNull final String name);
-
-  @NonNull Map<@NonNull String, @NonNull Object> getParameters ();
+  /**
+   * @return The filtering predicate.
+   */
+  @NonNull Expression<@NonNull Boolean> getExpression ();
 }

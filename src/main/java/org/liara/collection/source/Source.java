@@ -19,24 +19,30 @@
  * ARISING  FROM,  OUT  OF OR  IN  CONNECTION  WITH THE  SOFTWARE OR  THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.liara.collection;
+
+package org.liara.collection.source;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.liara.collection.operator.Operator;
+import org.liara.support.view.View;
 
-/**
- * A collection of data instances.
- */
-public interface Collection
+public interface Source
 {
   /**
-   * Apply an operator on this collection and return the resulting collection.
-   *
-   * @param operator An operator to apply.
-   *
-   * @return A collection that is the result of this operation over this collection.
+   * @return This source's name.
    */
-  default @NonNull Collection apply (@NonNull final Operator operator) {
-    return operator.apply(this);
-  }
+  @NonNull String getName ();
+
+  /**
+   * Returns true if this source contains the given placeholder.
+   *
+   * @param placeholder A placeholder to search.
+   *
+   * @return True if this source contains the given placeholder.
+   */
+  boolean contains (@NonNull final SourcePlaceholder<?> placeholder);
+
+  /**
+   * @return A view over each placeholder of this source.
+   */
+  @NonNull View<? extends @NonNull SourcePlaceholder> getPlaceholders ();
 }

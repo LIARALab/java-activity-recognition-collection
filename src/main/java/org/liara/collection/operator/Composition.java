@@ -26,8 +26,6 @@ import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
-import org.liara.collection.operator.joining.Join;
-import org.liara.collection.operator.joining.JoinableOperator;
 
 import java.util.*;
 
@@ -38,8 +36,7 @@ import java.util.*;
  */
 public final class Composition
   implements Operator,
-             Iterable<@NonNull Operator>,
-             JoinableOperator
+             Iterable<@NonNull Operator>
 {
   @NonNull
   public static final Composition EMPTY = new Composition();
@@ -160,11 +157,6 @@ public final class Composition
     return result;
   }
 
-  @Override
-  public @NonNull Operator join (@NonNull final Join join) {
-    return new Composition(Arrays.stream(_operators).map(join::apply).iterator());
-  }
-
   /**
    * Return an operator of this composition.
    *
@@ -177,15 +169,6 @@ public final class Composition
    */
   public @NonNull Operator getOperator (@NonNegative @LTLengthOf("_operators") final int index) {
     return _operators[index];
-  }
-
-  /**
-   * Alias of getOperator for groovy indexing support.
-   *
-   * @see Composition#getOperator(int)
-   */
-  public @NonNull Operator getAt (@NonNegative @LTLengthOf("_operators") final int index) {
-    return getOperator(index);
   }
 
   /**

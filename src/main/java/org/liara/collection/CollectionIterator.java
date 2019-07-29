@@ -20,13 +20,30 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.liara.collection.operator.joining;
+package org.liara.collection;
 
+import org.apache.commons.lang3.mutable.Mutable;
+import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.liara.collection.operator.Operator;
 
-public interface JoinableOperator
-  extends Operator
+public interface CollectionIterator
 {
-  @NonNull Operator join (@NonNull final Join join);
+  void get (@NonNull final Object[] buffer);
+
+  @NonNegative int getSize ();
+
+  boolean hasNext ();
+
+  void next ();
+
+  boolean hasPrevious ();
+
+  void previous ();
+
+  @NonNegative int getLocation ();
+
+  void setLocation (@NonNegative final int location);
+
+  void get (@NonNegative final int column, @NonNull final Mutable<?> mutable);
 }
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
+ * Copyright (C) 2019 Cedric DEMONGIVERT <cedric.demongivert@gmail.com>
  *
  * Permission is hereby granted,  free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,22 +22,5 @@
 
 package org.liara.collection
 
-import org.liara.collection.operator.Operator
-import org.mockito.Mockito
-
 class CollectionSpecification extends Specification {
-  def "it allows to apply an operator on itself" () {
-    given: "an operator"
-    final Operator op = Mockito.mock(Operator.class)
-
-    and: "a collection"
-    final Collection collection = Mockito.mock(Collection.class)
-    Mockito.when(collection.apply(Mockito.any(Operator.class))).thenCallRealMethod()
-
-    when: "we call apply with the operator"
-    collection.apply(op)
-
-    then: "we expect the collection to apply the operator to itself"
-    isTrue Mockito.verify(op).apply(collection)
-  }
 }

@@ -30,8 +30,8 @@ import java.util.List;
 /**
  * An interface for collections that can be ordered.
  */
-public interface OrderableCollection<Model>
-  extends Collection<Model>
+public interface OrderableCollection
+  extends Collection
 {
   /**
    * Create a new collection that is a copy of this collection ordered in accordance with a given ordering operator.
@@ -43,9 +43,9 @@ public interface OrderableCollection<Model>
    *
    * @return A new ordered instance of this collection.
    */
-  @NonNull OrderableCollection<Model> orderBy (@NonNull final Order order);
+  @NonNull OrderableCollection orderBy (@NonNull final Order order);
 
-  @NonNull OrderableCollection<Model> removeOrder (@NonNull final Order order);
+  @NonNull OrderableCollection removeOrder (@NonNull final Order order);
 
   @NonNull List<@NonNull Order> getOrderings ();
 

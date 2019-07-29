@@ -24,10 +24,10 @@ package org.liara.collection.operator.cursoring;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.Collection;
 
-public interface CursorableCollection<Model>
-  extends Collection<Model>
+public interface CursorableCollection
+  extends Collection
 {
-  @NonNull CursorableCollection<Model> setCursor (@NonNull final Cursor cursor);
+  @NonNull CursorableCollection setCursor (@NonNull final Cursor cursor);
 
   @NonNull Cursor getCursor ();
 }

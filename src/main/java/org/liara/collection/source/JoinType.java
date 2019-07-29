@@ -20,17 +20,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.liara.collection.operator.aggregate;
+package org.liara.collection.source;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.liara.collection.operator.Operator;
-
-public interface Aggregate
-  extends Operator
+public enum JoinType
 {
-  static @NonNull ExpressionAggregate expression (@NonNull final String expression) {
-    return new ExpressionAggregate(expression);
-  }
-
-  @NonNull String getExpression ();
+  INNER_JOIN,
+  CROSS_JOIN,
+  LEFT_OUTER_JOIN,
+  RIGHT_OUTER_JOIN
 }

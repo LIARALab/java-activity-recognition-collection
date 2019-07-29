@@ -27,12 +27,12 @@ import org.liara.collection.Collection;
 
 import java.util.List;
 
-public interface GroupableCollection<Entity>
-  extends Collection<Entity>
+public interface GroupableCollection
+  extends Collection
 {
-  @NonNull GroupableCollection<Entity> groupBy (@NonNull final Group group);
+  @NonNull GroupableCollection groupBy (@NonNull final Group group);
 
-  @NonNull GroupableCollection<Entity> ungroup (@NonNull final Group group);
+  @NonNull GroupableCollection ungroup (@NonNull final Group group);
 
   @NonNull List<@NonNull Group> getGroups ();
 

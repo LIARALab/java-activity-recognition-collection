@@ -20,27 +20,40 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.liara.collection.operator.aggregate;
+package org.liara.collection.operator.selection;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.Collection;
+import org.liara.collection.operator.Operator;
+import org.liara.expression.Expression;
 
-import java.util.List;
-
-public interface AggregableCollection<Entity>
-  extends Collection<Entity>
+public interface Selection<T>
+  extends Operator
 {
-  @NonNull AggregableCollection<Entity> aggregate (
-    @NonNull final Aggregate aggregate
-  );
+  /**
+   * @see Operator#apply(Collection)
+   */
+  @Override
+  default @NonNull Collection apply (@NonNull final Collection collection) {
+    if (collection instanceof SelectableCollection) {
+      return ((SelectableCollection) collection).select(this);
+    }
 
-  @NonNull AggregableCollection<Entity> remove (
-    @NonNull final Aggregate aggregate
-  );
-
-  @NonNull List<@NonNull Aggregate> getAggregations ();
-
-  default boolean isAggregated () {
-    return !getAggregations().isEmpty();
+    return collection;
   }
+
+  /**
+   * @return The name of this selection.
+   */
+  @NonNull String getName ();
+
+  /**
+   * @return The expression of this selection.
+   */
+  @NonNull Expression<T> getExpression ();
+
+  /**
+   * @return A placeholder for using this selection.
+   */
+  @NonNull SelectionPlaceholder<T> getPlaceholder ();
 }

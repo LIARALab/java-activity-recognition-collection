@@ -19,24 +19,51 @@
  * ARISING  FROM,  OUT  OF OR  IN  CONNECTION  WITH THE  SOFTWARE OR  THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.liara.collection;
+
+package org.liara.collection.source;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.liara.collection.operator.Operator;
+import org.liara.data.graph.Column;
+import org.liara.data.primitive.Primitive;
+import org.liara.expression.Expression;
+import org.liara.support.view.View;
 
-/**
- * A collection of data instances.
- */
-public interface Collection
+public class JoinSourcePlaceholder<Type>
+  implements SourcePlaceholder<Type>
 {
-  /**
-   * Apply an operator on this collection and return the resulting collection.
-   *
-   * @param operator An operator to apply.
-   *
-   * @return A collection that is the result of this operation over this collection.
-   */
-  default @NonNull Collection apply (@NonNull final Operator operator) {
-    return operator.apply(this);
+  @NonNull
+  private static final View<@NonNull Expression> CHILDREN = View.readonly(Expression.class);
+
+  @NonNull
+  private final JoinSource _source;
+
+  @NonNull
+  private final Column<Type> _column;
+
+  public JoinSourcePlaceholder (
+    @NonNull final JoinSource source,
+    @NonNull final Column<Type> column
+  ) {
+    _source = source;
+    _column = column;
+  }
+
+  @Override
+  public @NonNull JoinSource getSource () {
+    return _source;
+  }
+
+  public @NonNull Column<Type> getColumn () {
+    return _column;
+  }
+
+  @Override
+  public @NonNull Primitive<Type> getResultType () {
+    return _column.getType();
+  }
+
+  @Override
+  public @NonNull View<@NonNull Expression> getChildren () {
+    return CHILDREN;
   }
 }

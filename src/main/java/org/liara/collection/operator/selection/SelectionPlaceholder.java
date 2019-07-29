@@ -20,25 +20,13 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.liara.collection.operator.joining;
+package org.liara.collection.operator.selection;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.liara.collection.Collection;
+import org.liara.expression.Placeholder;
 
-import java.util.Map;
-
-public interface JoinableCollection<Model>
-  extends Collection<Model>
+public interface SelectionPlaceholder<Type>
+  extends Placeholder<Type>
 {
-  @NonNull JoinableCollection<Model> join (@NonNull final Join<?> relation);
-
-  @NonNull JoinableCollection<Model> disjoin (@NonNull final Join<?> relation);
-
-  @NonNull JoinableCollection<Model> disjoin (@NonNull final String name);
-
-  @NonNull Map<@NonNull String, @NonNull Join> getJoins ();
-
-  default boolean hasJoins () {
-    return !getJoins().isEmpty();
-  }
+  @NonNull Selection<Type> getSelection ();
 }

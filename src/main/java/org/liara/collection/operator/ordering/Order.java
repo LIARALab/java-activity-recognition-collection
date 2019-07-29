@@ -25,44 +25,86 @@ package org.liara.collection.operator.ordering;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.Collection;
 import org.liara.collection.operator.Operator;
-import org.liara.collection.operator.joining.Join;
+import org.liara.expression.Expression;
 
-import javax.persistence.metamodel.Attribute;
-
+/**
+ * An ordering operation.
+ */
 public interface Order
   extends Operator
 {
-  static @NonNull Order expression (@NonNull final String name) {
-    return new ExpressionOrder(name);
+  /**
+   * Create and return a new ascending ordering operation of the given expression.
+   *
+   * @param expression An expression to order.
+   *
+   * @return A new ascending ordering operation of the given expression.
+   */
+  static @NonNull Order expression (@NonNull final Expression<?> expression) {
+    return new ExpressionOrder(expression);
   }
 
-  static @NonNull Order expression (@NonNull final Attribute<?, ?> attribute) {
-    return new ExpressionOrder(attribute);
-  }
-
-  static @NonNull Order join (@NonNull final Join join, @NonNull final Order order) {
-    return new JoinOrder(join, order);
+  /**
+   * Create and return a new ordering operation of the given expression in the given direction.
+   *
+   * @param expression An expression to order.
+   * @param direction  The ordering direction.
+   *
+   * @return A new ascending ordering operation of the given expression in the given direction.
+   */
+  static @NonNull Order expression (
+    @NonNull final Expression<?> expression,
+    @NonNull final OrderingDirection direction
+  ) {
+    return new ExpressionOrder(expression, direction);
   }
 
   /**
    * @see Operator#apply(Collection)
    */
   @Override
-  default <Model> @NonNull Collection<Model> apply (@NonNull final Collection<Model> collection) {
+  default @NonNull Collection apply (@NonNull final Collection collection) {
     if (collection instanceof OrderableCollection) {
-      return ((OrderableCollection<Model>) collection).orderBy(this);
+      return ((OrderableCollection) collection).orderBy(this);
     }
 
     return collection;
   }
 
-  @NonNull String getExpression ();
+  /**
+   * @return The expression that compute the value that is ordered.
+   */
+  @NonNull Expression<?> getExpression ();
 
+  /**
+   * @return The direction of the ordering operation.
+   */
   @NonNull OrderingDirection getDirection ();
 
+  /**
+   * Return a new ordering operation that is a copy of this one with the given ordering direction.
+   *
+   * @param direction A new ordering direction.
+   *
+   * @return A new ordering operation that is a copy of this one with the given ordering direction.
+   */
   @NonNull Order setDirection (@NonNull final OrderingDirection direction);
 
-  @NonNull Order ascending ();
+  /**
+   * Alias of setDirection(OrderingDirection.ASCENDING);
+   *
+   * @see #setDirection(OrderingDirection)
+   */
+  default @NonNull Order ascending () {
+    return setDirection(OrderingDirection.ASCENDING);
+  }
 
-  @NonNull Order descending ();
+  /**
+   * Alias of setDirection(OrderingDirection.DESCENDING);
+   *
+   * @see #setDirection(OrderingDirection)
+   */
+  default @NonNull Order descending () {
+    return setDirection(OrderingDirection.DESCENDING);
+  }
 }
