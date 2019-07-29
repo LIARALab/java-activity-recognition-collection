@@ -29,7 +29,7 @@ import org.liara.collection.operator.filtering.Filter;
 import org.liara.collection.operator.grouping.Group;
 import org.liara.collection.operator.ordering.Order;
 import org.liara.collection.operator.ordering.OrderingDirection;
-import org.liara.collection.operator.selection.Selection;
+import org.liara.collection.operator.selection.Select;
 import org.liara.collection.source.JoinSource;
 import org.liara.collection.source.Source;
 import org.liara.collection.source.TableSource;
@@ -212,14 +212,14 @@ public final class JPACollectionDriver
    * @return A valid JPA select clause for the given collection if any.
    */
   public @NonNull String getSelectClause (@NonNull final GraphCollection collection) {
-    @NonNull final Iterator<@NonNull Selection> selections = collection.getSelections().iterator();
+    @NonNull final Iterator<@NonNull Select> selections = collection.getSelections().iterator();
 
     while (selections.hasNext()) {
-      @NonNull final Selection selection = selections.next();
+      @NonNull final Select select = selections.next();
 
-      _builder.append(_jpaExpressionTranspiler.transpile(selection.getExpression()));
+      _builder.append(_jpaExpressionTranspiler.transpile(select.getExpression()));
       _builder.append(" AS ");
-      _builder.append(selection.getName());
+      _builder.append(select.getName());
 
       if (selections.hasNext()) {
         _builder.append(", ");

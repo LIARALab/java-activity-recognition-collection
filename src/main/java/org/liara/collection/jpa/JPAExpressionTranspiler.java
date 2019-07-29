@@ -260,7 +260,7 @@ public class JPAExpressionTranspiler
   }
 
   private <T> void exitSelectionPlaceholder (@NonNull final SelectionPlaceholder<T> placeholder) {
-    _result.append(placeholder.getSelection().getName());
+    _result.append(placeholder.getSelect().getName());
   }
 
   private <T> void exitJoinSourcePlaceholder (

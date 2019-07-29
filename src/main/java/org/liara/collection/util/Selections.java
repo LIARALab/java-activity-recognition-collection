@@ -25,58 +25,58 @@ package org.liara.collection.util;
 import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.liara.collection.operator.selection.Selection;
+import org.liara.collection.operator.selection.Select;
 
 import java.util.Iterator;
 import java.util.Objects;
 
 public class Selections
-  implements Iterable<@NonNull Selection>
+  implements Iterable<@NonNull Select>
 {
   @NonNull
   public static final Selections EMPTY = new Selections();
 
   @NonNull
-  private final ImmutableList<@NonNull Selection> _selections;
+  private final ImmutableList<@NonNull Select> _selects;
 
-  public Selections (@NonNull final Selection... selections) {
-    _selections = ImmutableList.copyOf(selections);
+  public Selections (@NonNull final Select... selects) {
+    _selects = ImmutableList.copyOf(selects);
   }
 
-  public Selections (@NonNull final Iterator<@NonNull Selection> selections) {
-    _selections = ImmutableList.copyOf(selections);
+  public Selections (@NonNull final Iterator<@NonNull Select> selections) {
+    _selects = ImmutableList.copyOf(selections);
   }
 
-  public Selections (final java.util.@NonNull Collection<@NonNull Selection> selections) {
-    _selections = ImmutableList.copyOf(selections);
+  public Selections (final java.util.@NonNull Collection<@NonNull Select> selects) {
+    _selects = ImmutableList.copyOf(selects);
   }
 
-  public Selections (@NonNull final ImmutableList<@NonNull Selection> selections) {
-    _selections = selections;
+  public Selections (@NonNull final ImmutableList<@NonNull Select> selects) {
+    _selects = selects;
   }
 
   public Selections (@NonNull final Selections toCopy) {
-    _selections = toCopy.getSelections();
+    _selects = toCopy.getSelects();
   }
 
-  public @NonNull Selections select (@NonNull final Selection selection) {
-    if (_selections.contains(selection)) {
+  public @NonNull Selections select (@NonNull final Select select) {
+    if (_selects.contains(select)) {
       return this;
     } else {
-      final ImmutableList.@NonNull Builder<@NonNull Selection> builder = ImmutableList.builder();
-      builder.addAll(_selections);
-      builder.add(selection);
+      final ImmutableList.@NonNull Builder<@NonNull Select> builder = ImmutableList.builder();
+      builder.addAll(_selects);
+      builder.add(select);
 
       return new Selections(builder.build());
     }
   }
 
-  public @NonNull Selections remove (@NonNull final Selection selection) {
-    if (_selections.contains(selection)) {
-      final ImmutableList.@NonNull Builder<@NonNull Selection> builder = ImmutableList.builder();
+  public @NonNull Selections remove (@NonNull final Select select) {
+    if (_selects.contains(select)) {
+      final ImmutableList.@NonNull Builder<@NonNull Select> builder = ImmutableList.builder();
 
-      for (@NonNull final Selection toAdd : _selections) {
-        if (!selection.equals(toAdd)) {
+      for (@NonNull final Select toAdd : _selects) {
+        if (!select.equals(toAdd)) {
           builder.add(toAdd);
         }
       }
@@ -92,12 +92,12 @@ public class Selections
   }
 
   @Override
-  public Iterator<@NonNull Selection> iterator () {
-    return _selections.iterator();
+  public Iterator<@NonNull Select> iterator () {
+    return _selects.iterator();
   }
 
-  public @NonNull ImmutableList<@NonNull Selection> getSelections () {
-    return _selections;
+  public @NonNull ImmutableList<@NonNull Select> getSelects () {
+    return _selects;
   }
 
   @Override
@@ -108,7 +108,7 @@ public class Selections
     if (other instanceof Selections) {
       @NonNull final Selections otherGroups = (Selections) other;
 
-      return Objects.equals(_selections, otherGroups.getSelections());
+      return Objects.equals(_selects, otherGroups.getSelects());
     }
 
     return false;
@@ -116,6 +116,6 @@ public class Selections
 
   @Override
   public int hashCode () {
-    return Objects.hash(_selections);
+    return Objects.hash(_selects);
   }
 }

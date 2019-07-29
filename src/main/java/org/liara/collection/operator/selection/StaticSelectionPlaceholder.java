@@ -23,22 +23,35 @@
 package org.liara.collection.operator.selection;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.liara.collection.Collection;
+import org.liara.data.primitive.Primitive;
+import org.liara.expression.Expression;
+import org.liara.support.view.View;
 
-import java.util.List;
-
-public interface SelectableCollection
-  extends Collection
+public class StaticSelectionPlaceholder<Type>
+  implements SelectionPlaceholder<Type>
 {
-  @NonNull SelectableCollection select (@NonNull final Select select);
+  @NonNull
+  private static final View<@NonNull Expression> CHILDREN = View.readonly(Expression.class);
 
-  @NonNull SelectableCollection deselect (@NonNull final Select select);
+  @NonNull
+  private final Select<Type> _select;
 
-  @NonNull Select<?> getSelection (@NonNull final String name);
+  public StaticSelectionPlaceholder (@NonNull final Select<Type> select) {
+    _select = select;
+  }
 
-  @NonNull List<@NonNull Select> getSelections ();
+  @Override
+  public @NonNull Select<Type> getSelect () {
+    return _select;
+  }
 
-  default boolean hasSelections () {
-    return !getSelections().isEmpty();
+  @Override
+  public @NonNull Primitive<Type> getResultType () {
+    return _select.getExpression().getResultType();
+  }
+
+  @Override
+  public @NonNull View<Expression> getChildren () {
+    return CHILDREN;
   }
 }

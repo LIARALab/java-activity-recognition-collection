@@ -33,8 +33,8 @@ import org.liara.collection.operator.grouping.Group;
 import org.liara.collection.operator.grouping.GroupableCollection;
 import org.liara.collection.operator.ordering.Order;
 import org.liara.collection.operator.ordering.OrderableCollection;
+import org.liara.collection.operator.selection.Select;
 import org.liara.collection.operator.selection.SelectableCollection;
-import org.liara.collection.operator.selection.Selection;
 import org.liara.collection.source.GraphSource;
 import org.liara.collection.util.Filters;
 import org.liara.collection.util.Groups;
@@ -196,23 +196,23 @@ public class GraphCollection
   }
 
   @Override
-  public @NonNull GraphCollection select (@NonNull final Selection selection) {
-    return new GraphCollection(this, _selections.select(selection));
+  public @NonNull GraphCollection select (@NonNull final Select select) {
+    return new GraphCollection(this, _selections.select(select));
   }
 
   @Override
-  public @NonNull GraphCollection deselect (@NonNull final Selection selection) {
-    return new GraphCollection(this, _selections.remove(selection));
+  public @NonNull GraphCollection deselect (@NonNull final Select select) {
+    return new GraphCollection(this, _selections.remove(select));
   }
 
   @Override
-  public @NonNull Selection<?> getSelection (@NonNull final String name) {
-    throw new NotImplementedException("GraphCollection#getSelection(String)");
+  public @NonNull Select<?> getSelection (@NonNull final String name) {
+    throw new NotImplementedException("GraphCollection#getSelect(String)");
   }
 
   @Override
-  public @NonNull List<@NonNull Selection> getSelections () {
-    return _selections.getSelections();
+  public @NonNull List<@NonNull Select> getSelections () {
+    return _selections.getSelects();
   }
 
   public @NonNull GraphSource getSource () {

@@ -25,11 +25,32 @@ package org.liara.collection.operator.selection;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.collection.Collection;
 import org.liara.collection.operator.Operator;
+import org.liara.collection.source.JoinSourcePlaceholder;
+import org.liara.collection.source.TableSourcePlaceholder;
 import org.liara.expression.Expression;
 
-public interface Selection<T>
+public interface Select<T>
   extends Operator
 {
+  static <Type> @NonNull Select<Type> expression (
+    @NonNull final Expression<Type> expression,
+    @NonNull final String alias
+  ) {
+    return new ExpressionSelect<>(expression, alias);
+  }
+
+  static <Type> @NonNull Select<Type> expression (
+    @NonNull final TableSourcePlaceholder<Type> expression
+  ) {
+    return new ExpressionSelect<>(expression, expression.getColumn().getName());
+  }
+
+  static <Type> @NonNull Select<Type> expression (
+    @NonNull final JoinSourcePlaceholder<Type> expression
+  ) {
+    return new ExpressionSelect<>(expression, expression.getColumn().getName());
+  }
+
   /**
    * @see Operator#apply(Collection)
    */

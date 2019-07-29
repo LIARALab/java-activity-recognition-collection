@@ -28,5 +28,5 @@ import org.liara.expression.Placeholder;
 public interface SelectionPlaceholder<Type>
   extends Placeholder<Type>
 {
-  @NonNull Selection<Type> getSelection ();
+  @NonNull Select<Type> getSelect ();
 }
