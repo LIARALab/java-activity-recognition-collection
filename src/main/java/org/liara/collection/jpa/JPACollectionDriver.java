@@ -34,6 +34,7 @@ import org.liara.collection.source.JoinSource;
 import org.liara.collection.source.Source;
 import org.liara.collection.source.TableSource;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -41,14 +42,14 @@ import java.util.Optional;
 public final class JPACollectionDriver
 {
   @NonNull
-  private final JPAExpressionTranspiler _jpaExpressionTranspiler;
+  private final ExpressionToJPACompiler _expressionToJPACompiler;
 
   @NonNull
-  private final StringBuilder _builder;
+  private final StringBuilder _output;
 
   public JPACollectionDriver () {
-    _jpaExpressionTranspiler = new JPAExpressionTranspiler();
-    _builder = new StringBuilder();
+    _expressionToJPACompiler = new ExpressionToJPACompiler();
+    _output = new StringBuilder();
   }
 
   /**
@@ -64,15 +65,18 @@ public final class JPACollectionDriver
 
       for (int index = 0, size = orders.size(); index < size; ++index) {
         @NonNull final Order order = orders.get(index);
-        _builder.append(_jpaExpressionTranspiler.transpile(order.getExpression()));
-        _builder.append(" ");
-        _builder.append(order.getDirection() == OrderingDirection.ASCENDING ? "ASC" : "DESC");
+        _expressionToJPACompiler.setExpression(order.getExpression());
+        _expressionToJPACompiler.compile(_output);
+        _output.append(" ");
+        _output.append(order.getDirection() == OrderingDirection.ASCENDING ? "ASC" : "DESC");
 
-        if (index < size - 1) _builder.append(", ");
+        if (index < size - 1) _output.append(", ");
       }
 
-      @NonNull final String result = _builder.toString();
-      _builder.setLength(0);
+      @NonNull final String result = _output.toString();
+
+      _output.setLength(0);
+      _expressionToJPACompiler.setExpression(null);
 
       return Optional.of(result);
     }
@@ -88,59 +92,76 @@ public final class JPACollectionDriver
    * @return A from clause for the given collection.
    */
   public @NonNull String getFromClause (@NonNull final GraphCollection collection) {
+    @NonNull final List<@NonNull Source> sources = new ArrayList<>();
+
     @Nullable Source source = collection.getSource();
 
     while (source != null) {
-      if (source instanceof TableSource) {
-        source = renderTableSource((TableSource) source);
-      } else if (source instanceof JoinSource) {
-        source = renderJoinSource((JoinSource) source);
+      sources.add(source);
+      source = (source instanceof JoinSource) ? ((JoinSource) source).getOrigin() : null;
+    }
+
+    for (int index = sources.size(); index > 0; --index) {
+      @NonNull final Source toRender = sources.get(index - 1);
+
+      if (toRender instanceof TableSource) {
+        renderTableSource((TableSource) toRender);
+      } else if (toRender instanceof JoinSource) {
+        renderJoinSource((JoinSource) toRender);
       } else {
-        throw new IllegalStateException("Unhandled source of type " + source.getClass());
+        throw new Error("Unhandled source type " + toRender.getClass().getName() + ".");
       }
     }
 
-    @NonNull final String result = _builder.toString();
+    @NonNull final String result = _output.toString();
 
-    _builder.setLength(0);
+    _output.setLength(0);
 
     return result;
   }
 
-  private @Nullable Source renderJoinSource (@NonNull final JoinSource source) {
-    _builder.insert(0, _jpaExpressionTranspiler.transpile(source.getPredicate()));
-    _builder.insert(0, " ON ");
-
-    if (source.getName() != source.getJoined().getName()) {
-      _builder.insert(0, source.getName());
-      _builder.insert(0, " AS ");
-    }
-
-    _builder.insert(0, source.getJoined().getName());
-
+  private void renderJoinSource (@NonNull final JoinSource source) {
     switch (source.getType()) {
-      case INNER_JOIN: _builder.insert(0, "INNER JOIN");
+      case INNER_JOIN: _output.append("INNER JOIN");
         break;
-      case CROSS_JOIN: _builder.insert(0, "CROSS JOIN");
+      case CROSS_JOIN: _output.append("CROSS JOIN");
         break;
-      case LEFT_OUTER_JOIN: _builder.insert(0, "LEFT OUTER JOIN");
+      case LEFT_OUTER_JOIN: _output.append("LEFT OUTER JOIN");
         break;
-      case RIGHT_OUTER_JOIN: _builder.insert(0, "RIGHT OUTER JOIN");
+      case RIGHT_OUTER_JOIN: _output.append("RIGHT OUTER JOIN");
         break;
     }
 
-    return source.getOrigin();
+    _output.append(source.getJoined().getName());
+
+    if (
+      System.identityHashCode(source.getName()) != System.identityHashCode(
+        source.getJoined().getTable().getName()
+      )
+    ) {
+      _output.append(" AS ");
+      _output.append(source.getName());
+    }
+
+    _output.append(" ON ");
+
+    _expressionToJPACompiler.setExpression(source.getPredicate());
+    _expressionToJPACompiler.compile(_output);
+    _expressionToJPACompiler.setExpression(null);
+
   }
 
-  private @Nullable Source renderTableSource (@NonNull final TableSource source) {
-    if (source.getName() != source.getTable().getName()) {
-      _builder.insert(0, source.getName());
-      _builder.insert(0, " AS ");
+  private void renderTableSource (@NonNull final TableSource source) {
+    _output.append(source.getTable().getName());
+
+    if (
+      System.identityHashCode(source.getName()) != System.identityHashCode(
+        source.getTable().getName()
+      )
+    ) {
+      _output.append(" AS ");
+      _output.append(source.getName());
     }
-
-    _builder.insert(0, source.getTable().getName());
-
-    return null;
   }
 
   /**
@@ -154,19 +175,21 @@ public final class JPACollectionDriver
     if (collection.isFiltered()) {
       @NonNull final Iterator<@NonNull Filter> filters = collection.getFilters().iterator();
 
-      _builder.append('(');
+      _output.append('(');
       while (filters.hasNext()) {
         @NonNull final Filter filter = filters.next();
-        _builder.append(_jpaExpressionTranspiler.transpile(filter.getExpression()));
+        _expressionToJPACompiler.setExpression(filter.getExpression());
+        _expressionToJPACompiler.compile(_output);
+        _expressionToJPACompiler.setExpression(null);
 
         if (filters.hasNext()) {
-          _builder.append(") AND (");
+          _output.append(") AND (");
         }
       }
-      _builder.append(')');
+      _output.append(')');
 
-      @NonNull final String result = _builder.toString();
-      _builder.setLength(0);
+      @NonNull final String result = _output.toString();
+      _output.setLength(0);
 
       return Optional.of("(" + result + ")");
     }
@@ -188,15 +211,17 @@ public final class JPACollectionDriver
       while (groups.hasNext()) {
         @NonNull final Group group = groups.next();
 
-        _builder.append(_jpaExpressionTranspiler.transpile(group.getExpression()));
+        _expressionToJPACompiler.setExpression(group.getExpression());
+        _expressionToJPACompiler.compile(_output);
+        _expressionToJPACompiler.setExpression(null);
 
         if (groups.hasNext()) {
-          _builder.append(", ");
+          _output.append(", ");
         }
       }
 
-      @NonNull final String result = _builder.toString();
-      _builder.setLength(0);
+      @NonNull final String result = _output.toString();
+      _output.setLength(0);
 
       return Optional.of(result);
     }
@@ -217,17 +242,19 @@ public final class JPACollectionDriver
     while (selections.hasNext()) {
       @NonNull final Select select = selections.next();
 
-      _builder.append(_jpaExpressionTranspiler.transpile(select.getExpression()));
-      _builder.append(" AS ");
-      _builder.append(select.getName());
+      _expressionToJPACompiler.setExpression(select.getExpression());
+      _expressionToJPACompiler.compile(_output);
+      _expressionToJPACompiler.setExpression(null);
+      _output.append(" AS ");
+      _output.append(select.getName());
 
       if (selections.hasNext()) {
-        _builder.append(", ");
+        _output.append(", ");
       }
     }
 
-    @NonNull final String result = _builder.toString();
-    _builder.setLength(0);
+    @NonNull final String result = _output.toString();
+    _output.setLength(0);
 
     return result;
   }
@@ -246,28 +273,28 @@ public final class JPACollectionDriver
     @NonNull final String           fromClause      = getFromClause(collection);
     @NonNull final Optional<String> groupingClause  = getGroupingClause(collection);
 
-    _builder.append("SELECT ");
-    _builder.append(selectClause);
-    _builder.append(" FROM ");
-    _builder.append(fromClause);
+    _output.append("SELECT ");
+    _output.append(selectClause);
+    _output.append(" FROM ");
+    _output.append(fromClause);
 
     if (filteringClause.isPresent()) {
-      _builder.append(" WHERE ");
-      _builder.append(filteringClause.get());
+      _output.append(" WHERE ");
+      _output.append(filteringClause.get());
     }
 
     if (orderingClause.isPresent()) {
-      _builder.append(" ORDER BY ");
-      _builder.append(orderingClause.get());
+      _output.append(" ORDER BY ");
+      _output.append(orderingClause.get());
     }
 
     if (groupingClause.isPresent()) {
-      _builder.append(" GROUP BY ");
-      _builder.append(groupingClause.get());
+      _output.append(" GROUP BY ");
+      _output.append(groupingClause.get());
     }
 
-    @NonNull final String query = _builder.toString();
-    _builder.setLength(0);
+    @NonNull final String query = _output.toString();
+    _output.setLength(0);
 
     return query;
   }
