@@ -23,10 +23,9 @@
 package org.liara.collection.operator.selection;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.collection.Collection;
 import org.liara.collection.operator.Operator;
-import org.liara.collection.source.JoinSourcePlaceholder;
-import org.liara.collection.source.TableSourcePlaceholder;
 import org.liara.expression.Expression;
 
 public interface Select<T>
@@ -40,15 +39,9 @@ public interface Select<T>
   }
 
   static <Type> @NonNull Select<Type> expression (
-    @NonNull final TableSourcePlaceholder<Type> expression
+    @NonNull final Expression<Type> expression
   ) {
-    return new ExpressionSelect<>(expression, expression.getColumn().getName());
-  }
-
-  static <Type> @NonNull Select<Type> expression (
-    @NonNull final JoinSourcePlaceholder<Type> expression
-  ) {
-    return new ExpressionSelect<>(expression, expression.getColumn().getName());
+    return new ExpressionSelect<>(expression, null);
   }
 
   /**
@@ -66,7 +59,7 @@ public interface Select<T>
   /**
    * @return The name of this selection.
    */
-  @NonNull String getName ();
+  @Nullable String getName ();
 
   /**
    * @return The expression of this selection.

@@ -33,11 +33,14 @@ import org.liara.collection.operator.selection.Select;
 import org.liara.collection.source.JoinSource;
 import org.liara.collection.source.Source;
 import org.liara.collection.source.TableSource;
+import org.liara.expression.Expression;
+import org.liara.expression.ExpressionFactory;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public final class JPACollectionDriver
 {
@@ -47,9 +50,13 @@ public final class JPACollectionDriver
   @NonNull
   private final StringBuilder _output;
 
+  @NonNull
+  private final ExpressionFactory _expressionFactory;
+
   public JPACollectionDriver () {
     _expressionToJPACompiler = new ExpressionToJPACompiler();
     _output = new StringBuilder();
+    _expressionFactory = new ExpressionFactory();
   }
 
   /**
@@ -104,6 +111,10 @@ public final class JPACollectionDriver
     for (int index = sources.size(); index > 0; --index) {
       @NonNull final Source toRender = sources.get(index - 1);
 
+      if (index != sources.size()) {
+        _output.append(' ');
+      }
+
       if (toRender instanceof TableSource) {
         renderTableSource((TableSource) toRender);
       } else if (toRender instanceof JoinSource) {
@@ -132,7 +143,8 @@ public final class JPACollectionDriver
         break;
     }
 
-    _output.append(source.getJoined().getName());
+    _output.append(' ');
+    _output.append(source.getJoined().getTable().getName());
 
     if (
       System.identityHashCode(source.getName()) != System.identityHashCode(
@@ -173,25 +185,18 @@ public final class JPACollectionDriver
    */
   public @NonNull Optional<String> getWhereClause (@NonNull final GraphCollection collection) {
     if (collection.isFiltered()) {
-      @NonNull final Iterator<@NonNull Filter> filters = collection.getFilters().iterator();
+      @NonNull final List<@NonNull Expression<Boolean>> filters = (
+        collection.getFilters().stream().map(Filter::getExpression).collect(Collectors.toList())
+      );
 
-      _output.append('(');
-      while (filters.hasNext()) {
-        @NonNull final Filter filter = filters.next();
-        _expressionToJPACompiler.setExpression(filter.getExpression());
-        _expressionToJPACompiler.compile(_output);
-        _expressionToJPACompiler.setExpression(null);
-
-        if (filters.hasNext()) {
-          _output.append(") AND (");
-        }
-      }
-      _output.append(')');
+      _expressionToJPACompiler.setExpression(_expressionFactory.and(filters));
+      _expressionToJPACompiler.compile(_output);
+      _expressionToJPACompiler.setExpression(null);
 
       @NonNull final String result = _output.toString();
       _output.setLength(0);
 
-      return Optional.of("(" + result + ")");
+      return Optional.of(result);
     }
 
     return Optional.empty();
@@ -245,8 +250,11 @@ public final class JPACollectionDriver
       _expressionToJPACompiler.setExpression(select.getExpression());
       _expressionToJPACompiler.compile(_output);
       _expressionToJPACompiler.setExpression(null);
-      _output.append(" AS ");
-      _output.append(select.getName());
+
+      if (select.getName() != null) {
+        _output.append(" AS ");
+        _output.append(select.getName());
+      }
 
       if (selections.hasNext()) {
         _output.append(", ");

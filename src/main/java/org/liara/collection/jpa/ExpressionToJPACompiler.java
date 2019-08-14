@@ -92,6 +92,10 @@ public class ExpressionToJPACompiler
       exitPlaceholder((Placeholder<?>) expression, output);
     }
 
+    if (_compiler.hasCurrent()) {
+      _compiler.back(output);
+    }
+
     return expression;
   }
 

@@ -22,7 +22,51 @@
 
 package org.liara.collection.source;
 
+import org.checkerframework.checker.index.qual.NonNegative;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.liara.data.primitive.Primitive;
+import org.liara.data.primitive.Primitives;
+import org.liara.expression.Constant;
+import org.liara.expression.Expression;
+import org.liara.expression.Placeholder;
+
 public interface GraphSource
   extends Source
 {
+  /**
+   * Return a placeholder expression for the column with the given name of this source.
+   *
+   * @param name Name of the column from which getting a placeholder.
+   *
+   * @return A placeholder for the column with the given name.
+   */
+  @NonNull Placeholder<?> getOwnPlaceholder (@NonNegative final String name);
+
+  default @NonNull GraphSource innerJoin (
+    @NonNull final TableSource source
+  ) {
+    return innerJoin(source, new Constant<>(Primitives.BOOLEAN, true));
+  }
+
+  default @NonNull GraphSource innerJoin (
+    @NonNull final TableSource source,
+    @NonNull final Expression<Boolean> expression
+  ) {
+    return JoinSource.inner(this, source, expression);
+  }
+
+  /**
+   * Return a placeholder expression for the column with the given name of this source.
+   *
+   * @param expectedType Expected type of the column.
+   * @param name         Name of the column from which getting a placeholder.
+   *
+   * @return A placeholder for the column with the given name.
+   */
+  @SuppressWarnings("unchecked")
+  // Placeholder type test.
+  <Type> @NonNull Placeholder<Type> getOwnPlaceholder (
+    @NonNull final Primitive<Type> expectedType,
+    @NonNegative final String name
+  );
 }

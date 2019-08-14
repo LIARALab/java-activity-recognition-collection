@@ -26,6 +26,7 @@ import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.data.graph.Column;
 import org.liara.data.graph.Table;
+import org.liara.data.primitive.Primitive;
 import org.liara.support.view.View;
 
 /**
@@ -150,32 +151,25 @@ public class TableSource
   }
 
   /**
-   * Return a placeholder expression for the column with the given name of this source.
-   *
-   * @param name Name of the column from which getting a placeholder.
-   *
-   * @return A placeholder for the column with the given name.
+   * @see GraphSource#getOwnPlaceholder(String)
    */
+  @Override
   public @NonNull TableSourcePlaceholder<?> getOwnPlaceholder (@NonNegative final String name) {
     return _placeholders[_table.getIndexOf(_table.getColumn(name))];
   }
 
   /**
-   * Return a placeholder expression for the column with the given name of this source.
-   *
-   * @param expectedType Expected type of the column.
-   * @param name         Name of the column from which getting a placeholder.
-   *
-   * @return A placeholder for the column with the given name.
+   * @see GraphSource#getOwnPlaceholder(Primitive, String)
    */
+  @Override
   @SuppressWarnings("unchecked") // Placeholder type test.
   public <Type> @NonNull TableSourcePlaceholder<Type> getOwnPlaceholder (
-    @NonNull final Class<Type> expectedType,
+    @NonNull final Primitive<Type> expectedType,
     @NonNegative final String name
   ) {
     @NonNull final TableSourcePlaceholder<?> placeholder = getOwnPlaceholder(name);
 
-    if (placeholder.getResultType().getJavaClass() == expectedType) {
+    if (placeholder.getResultType() == expectedType) {
       return (TableSourcePlaceholder<Type>) placeholder;
     } else {
       throw new IllegalArgumentException(

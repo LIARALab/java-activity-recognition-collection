@@ -31,7 +31,7 @@ import java.util.Objects;
 public class ExpressionSelect<Type>
   implements Select<Type>
 {
-  @NonNull
+  @Nullable
   private final String _name;
 
   @NonNull
@@ -42,7 +42,7 @@ public class ExpressionSelect<Type>
 
   public ExpressionSelect (
     @NonNull final Expression<Type> expression,
-    @NonNull final String name
+    @Nullable final String name
   ) {
     _name = name;
     _expression = expression;
@@ -51,7 +51,7 @@ public class ExpressionSelect<Type>
   }
 
   @Override
-  public @NonNull String getName () {
+  public @Nullable String getName () {
     return _name;
   }
 

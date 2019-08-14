@@ -82,6 +82,18 @@ public class GraphCollection
 
   private GraphCollection (
     @NonNull final GraphCollection collection,
+    @NonNull final GraphSource source
+  ) {
+    _source = source;
+    _cursor = collection._cursor;
+    _filters = collection._filters;
+    _orderings = collection._orderings;
+    _groups = collection._groups;
+    _selections = collection._selections;
+  }
+
+  private GraphCollection (
+    @NonNull final GraphCollection collection,
     @NonNull final Cursor cursor
   ) {
     _source = collection._source;
@@ -217,6 +229,10 @@ public class GraphCollection
 
   public @NonNull GraphSource getSource () {
     return _source;
+  }
+
+  public @NonNull GraphCollection setSource (@NonNull final GraphSource source) {
+    return new GraphCollection(this, source);
   }
 
   @Override

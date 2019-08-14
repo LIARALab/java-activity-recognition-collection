@@ -25,6 +25,7 @@ package org.liara.collection.source;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.liara.data.graph.Column;
+import org.liara.data.primitive.Primitive;
 import org.liara.expression.Expression;
 import org.liara.support.view.View;
 
@@ -56,6 +57,42 @@ public class JoinSource
 
   @NonNull
   private final View<@NonNull SourcePlaceholder> _placeholdersView;
+
+  public JoinSource (
+    @NonNull final JoinType type,
+    @NonNull final Source origin,
+    @NonNull final TableSource joined,
+    @NonNull final Expression<@NonNull Boolean> predicate,
+    @NonNull final String name
+  ) {
+    _name = name;
+    _type = type;
+    _origin = origin;
+    _joined = joined;
+
+    _ownPlaceholders = new JoinSourcePlaceholder[_joined.getPlaceholders().getSize()];
+    _placeholders = (
+      new SourcePlaceholder[_ownPlaceholders.length + _origin.getPlaceholders().getSize()]
+    );
+    _placeholdersView = View.readonly(SourcePlaceholder.class, _placeholders);
+    buildPlaceholders();
+
+    _predicate = linkPredicate(Objects.requireNonNull(predicate));
+  }
+
+  public static GraphSource inner (
+    @NonNull final GraphSource origin,
+    @NonNull final TableSource joined,
+    @NonNull final Expression<Boolean> predicate
+  ) {
+    return new JoinSource(
+      JoinType.INNER_JOIN,
+      origin,
+      joined,
+      predicate,
+      joined.getName()
+    );
+  }
 
   public JoinSource (@NonNull final JoinSourceBuilder source) {
     _name = Objects.requireNonNull(source.getName());
@@ -150,32 +187,25 @@ public class JoinSource
   }
 
   /**
-   * Return a placeholder expression for the column with the given name of this source.
-   *
-   * @param name Name of the column from which getting a placeholder.
-   *
-   * @return A placeholder for the column with the given name.
+   * @see GraphSource#getOwnPlaceholder(String)
    */
+  @Override
   public @NonNull JoinSourcePlaceholder<?> getOwnPlaceholder (@NonNegative final String name) {
     return _ownPlaceholders[_joined.getTable().getIndexOf(_joined.getTable().getColumn(name))];
   }
 
   /**
-   * Return a placeholder expression for the column with the given name of this source.
-   *
-   * @param expectedType Expected type of the column.
-   * @param name         Name of the column from which getting a placeholder.
-   *
-   * @return A placeholder for the column with the given name.
+   * @see GraphSource#getOwnPlaceholder(Primitive, String)
    */
   @SuppressWarnings("unchecked") // Placeholder type test.
+  @Override
   public <Type> @NonNull JoinSourcePlaceholder<Type> getOwnPlaceholder (
-    @NonNull final Class<Type> expectedType,
+    @NonNull final Primitive<Type> expectedType,
     @NonNegative final String name
   ) {
     @NonNull final JoinSourcePlaceholder<?> placeholder = getOwnPlaceholder(name);
 
-    if (placeholder.getResultType().getJavaClass() == expectedType) {
+    if (placeholder.getResultType() == expectedType) {
       return (JoinSourcePlaceholder<Type>) placeholder;
     } else {
       throw new IllegalArgumentException(

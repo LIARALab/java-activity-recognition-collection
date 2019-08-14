@@ -23,10 +23,19 @@
 package org.liara.collection.source;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.liara.data.graph.Table;
 import org.liara.support.view.View;
 
 public interface Source
 {
+  static @NonNull TableSource from (@NonNull final Table table) {
+    return new TableSource(table);
+  }
+
+  static @NonNull TableSource from (@NonNull final Table table, @NonNull final String alias) {
+    return new TableSource(table, alias);
+  }
+
   /**
    * @return This source's name.
    */
