@@ -213,4 +213,12 @@ public class TableSource
   public @NonNull View<@NonNull TableSourcePlaceholder> getPlaceholders () {
     return _placeholderView;
   }
+
+  /**
+   * @see Source#getOwnPlaceholders() ()
+   */
+  @Override
+  public @NonNull View<@NonNull TableSourcePlaceholder> getOwnPlaceholders () {
+    return _placeholderView;
+  }
 }

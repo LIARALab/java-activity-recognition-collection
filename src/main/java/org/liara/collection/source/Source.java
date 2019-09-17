@@ -54,4 +54,9 @@ public interface Source
    * @return A view over each placeholder of this source.
    */
   @NonNull View<? extends @NonNull SourcePlaceholder> getPlaceholders ();
+
+  /**
+   * @return A view over each placeholder of this source.
+   */
+  @NonNull View<? extends @NonNull SourcePlaceholder> getOwnPlaceholders ();
 }

@@ -58,6 +58,9 @@ public class JoinSource
   @NonNull
   private final View<@NonNull SourcePlaceholder> _placeholdersView;
 
+  @NonNull
+  private final View<@NonNull JoinSourcePlaceholder> _ownPlaceholdersView;
+
   public JoinSource (
     @NonNull final JoinType type,
     @NonNull final Source origin,
@@ -78,6 +81,8 @@ public class JoinSource
     buildPlaceholders();
 
     _predicate = linkPredicate(Objects.requireNonNull(predicate));
+
+    _ownPlaceholdersView = View.readonly(JoinSourcePlaceholder.class, _ownPlaceholders);
   }
 
   public static GraphSource inner (
@@ -108,6 +113,7 @@ public class JoinSource
     buildPlaceholders();
 
     _predicate = linkPredicate(Objects.requireNonNull(source.getPredicate()));
+    _ownPlaceholdersView = View.readonly(JoinSourcePlaceholder.class, _ownPlaceholders);
   }
 
   private void buildPlaceholders () {
@@ -269,5 +275,13 @@ public class JoinSource
   @Override
   public @NonNull View<? extends @NonNull SourcePlaceholder> getPlaceholders () {
     return _placeholdersView;
+  }
+
+  /**
+   * @see Source#getOwnPlaceholders()
+   */
+  @Override
+  public @NonNull View<? extends @NonNull JoinSourcePlaceholder> getOwnPlaceholders () {
+    return _ownPlaceholdersView;
   }
 }
