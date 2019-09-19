@@ -25,7 +25,7 @@ package org.liara.collection.source;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.liara.expression.Expression;
-import org.liara.expression.RewritableExpression;
+import org.liara.expression.ExpressionFactory;
 import org.liara.expression.operation.StaticOperationBuilder;
 import org.liara.support.tree.TreeWalker;
 
@@ -49,6 +49,8 @@ public class JoinExpressionLinker
   private final        ArrayList<@NonNull Boolean>                         _identity;
   @Nullable
   private              JoinSource                                          _linked;
+  @NonNull
+  private final        ExpressionFactory                                   _expressionFactory;
 
   public JoinExpressionLinker () {
     _walker = new TreeWalker<>(Expression.class);
@@ -57,6 +59,7 @@ public class JoinExpressionLinker
     _identity = new ArrayList<>(10);
     _builder = new StaticOperationBuilder();
     _linked = null;
+    _expressionFactory = new ExpressionFactory();
   }
 
   public static @NonNull JoinExpressionLinker getInstance () {
@@ -128,20 +131,13 @@ public class JoinExpressionLinker
     @NonNull final Expression<Type> linked;
     final int                       cursor = _cursors.get(_cursors.size() - 1);
 
-    if (current instanceof RewritableExpression) {
-      @NonNull final Expression[] children = new Expression[_stack.size() - cursor];
+    @NonNull final Expression[] children = new Expression[_stack.size() - cursor];
 
-      for (int index = 0, size = children.length; index < size; ++index) {
-        children[index] = _stack.get(cursor + index);
-      }
-
-      linked = ((RewritableExpression<Type>) current).rewrite(children);
-    } else {
-      throw new IllegalStateException(
-        "Unable to link expression of type " + current.getClass() + " because the given " +
-        "expression type is not rewritable and must be linked."
-      );
+    for (int index = 0, size = children.length; index < size; ++index) {
+      children[index] = _stack.get(cursor + index);
     }
+
+    linked = (Expression<Type>) _expressionFactory.rewrite(current, children);
 
     while (_stack.size() > cursor) {
       _stack.remove(_stack.size() - 1);

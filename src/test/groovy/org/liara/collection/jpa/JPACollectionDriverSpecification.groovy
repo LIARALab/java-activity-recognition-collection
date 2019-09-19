@@ -224,11 +224,11 @@ class JPACollectionDriverSpecification
         factory.or(
           factory.equal(
             source.getOwnPlaceholder(Primitives.INTEGER, "identifier"),
-            factory.nonNullConstant(5)
+            factory.nonnull(5)
           ),
           factory.equal(
             source.getOwnPlaceholder(Primitives.STRING, "name"),
-            factory.nonNullConstant("rambo")
+            factory.nonnull("rambo")
           )
         )
       )
@@ -236,14 +236,14 @@ class JPACollectionDriverSpecification
       Filter.expression(
         factory.greaterThan(
           source.getOwnPlaceholder(Primitives.INTEGER, "identifier"),
-          factory.nonNullConstant(3)
+          factory.nonnull(3)
         )
       )
     ).addFilter(
       Filter.expression(
         factory.lessThan(
           source.getOwnPlaceholder(Primitives.INTEGER, "identifier"),
-          factory.nonNullConstant(13)
+          factory.nonnull(13)
         )
       )
     )
@@ -314,7 +314,7 @@ class JPACollectionDriverSpecification
       Group.expression(
         factory.modulus(
           source.getOwnPlaceholder(Primitives.INTEGER, "identifier"),
-          factory.nonNullConstant(5)
+          factory.nonnull(5)
         )
       )
     ).groupBy(Group.expression(source.getOwnPlaceholder("name")))
@@ -375,7 +375,7 @@ class JPACollectionDriverSpecification
       Filter.expression(
         factory.greaterThan(
           source.getOwnPlaceholder(Primitives.INTEGER, "identifier"),
-          factory.nonNullConstant(5)
+          factory.nonnull(5)
         )
       )
     )
